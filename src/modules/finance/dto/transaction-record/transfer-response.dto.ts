@@ -10,6 +10,13 @@ export class TransferMovementDto {
   })
   account_id!: number | null;
 
+  @ApiPropertyOptional({
+    description: 'ID del pasivo financiero de este lado (tarjeta de crédito).',
+    example: 3,
+    nullable: true,
+  })
+  liability_id!: number | null;
+
   @ApiProperty({
     description: 'Lado del movimiento: origen (debita) o destino (acredita).',
   })
@@ -83,6 +90,13 @@ export class TransferResponseDto {
     nullable: true,
   })
   objective_id!: number | null;
+
+  @ApiPropertyOptional({
+    description: 'ID del pasivo financiero de destino (tarjeta de crédito).',
+    example: 3,
+    nullable: true,
+  })
+  destination_liability_id!: number | null;
 
   @ApiProperty({ type: TransferMovementDto })
   source!: TransferMovementDto;

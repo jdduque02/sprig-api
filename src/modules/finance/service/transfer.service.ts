@@ -85,7 +85,7 @@ export class TransferService {
     const first = pair[0];
     const source = pair.find((r) => r.origin_account_id != null) ?? first;
     const destination =
-      pair.find((r) => r.destination_account_id != null) ?? first;
+      pair.find((r) => r.destination_account_id != null || r.liability_id != null) ?? first;
 
     return {
       transfer_group_id: first.transfer_group_id ?? '',
@@ -94,6 +94,7 @@ export class TransferService {
       description: first.description ?? null,
       reference_code: first.reference_code ?? null,
       objective_id: destination.objective_id ?? null,
+      destination_liability_id: destination.liability_id ?? null,
       source: this.toMovementDto(source, 'source'),
       destination: this.toMovementDto(destination, 'destination'),
     };
@@ -109,6 +110,8 @@ export class TransferService {
         side === 'source'
           ? record.origin_account_id
           : record.destination_account_id,
+      liability_id:
+        side === 'destination' ? record.liability_id : null,
       side,
       bank_name:
         side === 'source'

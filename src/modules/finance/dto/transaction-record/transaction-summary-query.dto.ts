@@ -32,4 +32,12 @@ export class TransactionSummaryQueryDto {
   @IsOptional()
   @IsEnum(TransactionTypeEnum)
   type?: TransactionTypeEnum;
+
+  @ApiPropertyOptional({
+    enum: ['COP', 'USD'],
+    description: 'Filtrar por moneda.',
+    example: 'COP',
+  })
+  @IsOptional()
+  currency?: string;
 }

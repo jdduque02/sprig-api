@@ -86,7 +86,12 @@
     "STATEMENT_IMPORT_INVALID_PDF": "No se pudo leer el PDF \"{file}\". Verifica que no esté dañado o escaneado (sin capa de texto).",
     "STATEMENT_IMPORT_NO_TRANSACTIONS": "No se detectaron movimientos en el PDF \"{file}\".",
     "STATEMENT_IMPORT_NO_RETRYABLE": "No hay archivos fallidos para reintentar en esta carga.",
-    "STATEMENT_IMPORT_STORAGE_MISSING_RETRY": "Los archivos \"{files}\" ya no están disponibles para reintentar. Vuelve a subir el PDF."
+    "STATEMENT_IMPORT_STORAGE_MISSING_RETRY": "Los archivos \"{files}\" ya no están disponibles para reintentar. Vuelve a subir el PDF.",
+    "NEGATIVE_BALANCE_NOT_ALLOWED": "No se permite saldo negativo en la cuenta {name}. Saldo actual: ${current}. Monto solicitado: ${amount}.",
+    "LIABILITY_NOT_FOUND": "Pasivo financiero con id {id} no encontrado.",
+    "CURRENCY_MISMATCH": "La moneda de la transacción ({txCurrency}) no coincide con la moneda de la entidad ({entityCurrency}).",
+    "TRANSFER_DESTINATION_REQUIRED": "Se requiere cuenta de destino o pasivo financiero de destino.",
+    "TRANSFER_INVALID_DESTINATION": "El destino debe ser una cuenta bancaria o un pasivo financiero (tarjeta de crédito)."
   },
   "intelligence": {
     "FINANCIAL_SUMMARY_NOT_FOUND": "No se encontró resumen financiero para el usuario {userId}.",
@@ -107,6 +112,7 @@
     "UPCOMING_DEDUCTION": "Deducción próxima",
     "UPCOMING_INCOME": "Ingreso próximo",
     "UPCOMING_INVESTMENT": "Inversión próxima",
+    "UPCOMING_SUBSCRIPTION": "Suscripción próxima",
     "GENERIC_MOVEMENT": "tu movimiento",
     "UPCOMING_DESCRIPTION": "Tu {concept} de {amount} se efectuará el {date}.",
     "PAYMENT_METHOD": "Método de pago: {method}",

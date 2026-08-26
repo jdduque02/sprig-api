@@ -34,6 +34,9 @@ export class TransactionRecordResponseDto {
   @ApiProperty({ example: 50000 })
   amount!: number;
 
+  @ApiProperty({ example: 'COP', description: 'Moneda de la transacción.' })
+  currency!: string;
+
   @ApiProperty({ example: false })
   is_fixed!: boolean;
 

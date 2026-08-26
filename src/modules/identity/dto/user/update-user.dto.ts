@@ -1,4 +1,5 @@
 import {
+  IsEmail,
   IsNotEmpty,
   IsObject,
   IsOptional,
@@ -14,6 +15,16 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
  * Excluye `is_active` — solo los admins pueden activar/desactivar usuarios.
  */
 export class UpdateUserDto {
+  @ApiPropertyOptional({
+    description: 'Correo electrónico del usuario.',
+    example: 'juan.perez@example.com',
+    maxLength: 200,
+  })
+  @IsOptional()
+  @IsEmail()
+  @MaxLength(200)
+  email?: string;
+
   @ApiPropertyOptional({
     description: 'Nombre de usuario único para acceder al sistema.',
     example: 'juan_perez',

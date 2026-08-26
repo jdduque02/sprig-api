@@ -9,6 +9,7 @@ import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import { I18nService } from 'nestjs-i18n';
 import {
   DataSource,
+  DeepPartial,
   EntityManager,
   In,
   IsNull,
@@ -565,15 +566,23 @@ export class TransactionRecordRepository {
    * ligadas por `transfer_group_id` dentro de una única transacción atómica.
    *   - registro origen:  origin_account_id = cuenta origen  (debita)
    *   - registro destino: destination_account_id = cuenta destino (acredita)
-   * Ajusta el saldo cifrado de ambas cuentas (origen -monto, destino +monto).
+   *     O destination_liability_id = pasivo destino (tarjeta de crédito)
+   * Ajusta el saldo cifrado de ambas entidades (origen -monto, destino +monto).
    */
   async createTransfer(
     userId: number,
     dto: CreateTransferDto,
   ): Promise<TransactionRecord[]> {
-    if (dto.source_account_id === dto.destination_account_id) {
+    const hasDestAccount = dto.destination_account_id != null;
+    const hasDestLiability = dto.destination_liability_id != null;
+    if (!hasDestAccount && !hasDestLiability) {
       throw new BadRequestException(
-        this.i18n.t('finance.TRANSFER_SAME_ACCOUNT'),
+        this.i18n.t('finance.TRANSFER_DESTINATION_REQUIRED'),
+      );
+    }
+    if (hasDestAccount && hasDestLiability) {
+      throw new BadRequestException(
+        this.i18n.t('finance.TRANSFER_INVALID_DESTINATION'),
       );
     }
 
@@ -586,15 +595,40 @@ export class TransactionRecordRepository {
         user_id: userId,
         deleted_at: IsNull(),
       });
-      const destination = await accountRepo.findOneBy({
-        id: dto.destination_account_id,
-        user_id: userId,
-        deleted_at: IsNull(),
-      });
-      if (!source || !destination) {
+      if (!source) {
         throw new NotFoundException(
           this.i18n.t('finance.TRANSFER_ACCOUNT_NOT_FOUND'),
         );
+      }
+
+      let destinationAccount: BankAccount | null = null;
+      let destinationLiability: FinancialLiability | null = null;
+
+      if (hasDestAccount) {
+        destinationAccount = await accountRepo.findOneBy({
+          id: dto.destination_account_id,
+          user_id: userId,
+          deleted_at: IsNull(),
+        });
+        if (!destinationAccount) {
+          throw new NotFoundException(
+            this.i18n.t('finance.TRANSFER_ACCOUNT_NOT_FOUND'),
+          );
+        }
+      } else {
+        const liabilityRepo = manager.getRepository(FinancialLiability);
+        destinationLiability = await liabilityRepo.findOneBy({
+          id: dto.destination_liability_id,
+          user_id: userId,
+          deleted_at: IsNull(),
+        });
+        if (!destinationLiability) {
+          throw new NotFoundException(
+            this.i18n.t('finance.LIABILITY_NOT_FOUND', {
+              args: { id: dto.destination_liability_id },
+            }),
+          );
+        }
       }
 
       const groupId = randomUUID();
@@ -604,6 +638,7 @@ export class TransactionRecordRepository {
         user_id: userId,
         type: TransactionTypeEnum.TRANSFER,
         amount: dto.amount,
+        currency: source.currency ?? 'COP',
         transfer_group_id: groupId,
         transaction_date: transactionDate as unknown as Date,
         description: dto.description ?? 'Movimiento entre cuentas',
@@ -611,23 +646,38 @@ export class TransactionRecordRepository {
         category_status: ReviewStatusEnum.CATEGORIZED,
         source_account: source.account_type,
         source_bank: source.bank_name,
-        destination_account: destination.account_type,
-        destination_bank: destination.bank_name,
         company_id: dto.company_id ?? null,
       };
+
+      let destAccountType: string | null = null;
+      let destBankName: string | null = null;
+      if (destinationAccount) {
+        destAccountType = destinationAccount.account_type;
+        destBankName = destinationAccount.bank_name;
+      } else if (destinationLiability) {
+        destAccountType = destinationLiability.liability_type;
+        destBankName = destinationLiability.name;
+      }
 
       const origin = recordRepo.create({
         ...base,
         origin_account_id: dto.source_account_id,
       });
-      const destinationRecord = recordRepo.create({
+      const destinationData: DeepPartial<TransactionRecord> = {
         ...base,
-        destination_account_id: dto.destination_account_id,
+        destination_account: destAccountType ?? undefined,
+        destination_bank: destBankName ?? undefined,
         objective_id: dto.objective_id,
-      });
+      };
+      if (hasDestAccount) {
+        destinationData.destination_account_id = dto.destination_account_id;
+      } else {
+        destinationData.liability_id = dto.destination_liability_id;
+      }
+      const destinationRecord = recordRepo.create(destinationData);
 
-      const savedOrigin = await recordRepo.save(origin);
-      const savedDestination = await recordRepo.save(destinationRecord);
+      const savedOrigin = (await recordRepo.save(origin)) as TransactionRecord;
+      const savedDestination = (await recordRepo.save(destinationRecord)) as TransactionRecord;
       await this.applyTransferAdjustment(manager, savedOrigin, 1);
       await this.applyTransferAdjustment(manager, savedDestination, 1);
 
@@ -960,6 +1010,17 @@ export class TransactionRecordRepository {
             : '0',
         );
         const next = current + delta;
+        if (next < 0) {
+          throw new BadRequestException(
+            this.i18n.t('finance.NEGATIVE_BALANCE_NOT_ALLOWED', {
+              args: {
+                name: account.bank_name ?? 'cuenta',
+                current: String(current),
+                amount: String(Math.abs(delta)),
+              },
+            }),
+          );
+        }
         account.encrypted_balance = this.encryptionService.encryptField(
           String(next),
           'banking',
@@ -1020,6 +1081,7 @@ export class TransactionRecordRepository {
         subcategory_id: original.subcategory_id,
         type: original.type,
         amount: dto.amount ?? original.amount,
+        currency: original.currency,
         is_fixed: original.is_fixed,
         fixed_type: original.fixed_type,
         frequency: original.frequency,

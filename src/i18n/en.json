@@ -86,7 +86,12 @@
     "STATEMENT_IMPORT_INVALID_PDF": "Could not read the PDF \"{file}\". Check that it is not corrupted or scanned (no text layer).",
     "STATEMENT_IMPORT_NO_TRANSACTIONS": "No movements detected in the PDF \"{file}\".",
     "STATEMENT_IMPORT_NO_RETRYABLE": "There are no failed files to retry in this import.",
-    "STATEMENT_IMPORT_STORAGE_MISSING_RETRY": "The files \"{files}\" are no longer available to retry. Please upload the PDF again."
+    "STATEMENT_IMPORT_STORAGE_MISSING_RETRY": "The files \"{files}\" are no longer available to retry. Please upload the PDF again.",
+    "NEGATIVE_BALANCE_NOT_ALLOWED": "Negative balance not allowed for account {name}. Current balance: ${current}. Requested amount: ${amount}.",
+    "LIABILITY_NOT_FOUND": "Financial liability with id {id} not found.",
+    "CURRENCY_MISMATCH": "Transaction currency ({txCurrency}) does not match entity currency ({entityCurrency}).",
+    "TRANSFER_DESTINATION_REQUIRED": "A destination account or financial liability is required.",
+    "TRANSFER_INVALID_DESTINATION": "Destination must be a bank account or financial liability (credit card)."
   },
   "intelligence": {
     "FINANCIAL_SUMMARY_NOT_FOUND": "No financial summary found for user {userId}.",
@@ -107,6 +112,7 @@
     "UPCOMING_DEDUCTION": "Upcoming deduction",
     "UPCOMING_INCOME": "Upcoming income",
     "UPCOMING_INVESTMENT": "Upcoming investment",
+    "UPCOMING_SUBSCRIPTION": "Upcoming subscription",
     "GENERIC_MOVEMENT": "your movement",
     "UPCOMING_DESCRIPTION": "Your {concept} of {amount} will be executed on {date}.",
     "PAYMENT_METHOD": "Payment method: {method}",

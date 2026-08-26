@@ -77,6 +77,16 @@ export class CreateTransactionRecordDto {
   amount!: number;
 
   @ApiPropertyOptional({
+    description: 'Moneda de la transacción (COP o USD).',
+    enum: ['COP', 'USD'],
+    default: 'COP',
+    example: 'COP',
+  })
+  @IsOptional()
+  @IsIn(['COP', 'USD'])
+  currency?: string;
+
+  @ApiPropertyOptional({
     description: 'Número de cuotas de la compra (tarjeta crédito).',
     example: 12,
   })

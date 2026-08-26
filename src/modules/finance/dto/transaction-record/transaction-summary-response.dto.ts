@@ -12,6 +12,9 @@ export class TransactionTotalsDto {
 
   @ApiProperty({ example: 45 })
   count!: number;
+
+  @ApiPropertyOptional({ example: 'COP', nullable: true })
+  currency?: string | null;
 }
 
 export class TransactionCategorySummaryDto {
