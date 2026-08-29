@@ -16,7 +16,10 @@ export const getThrottlerConfig = (
         // dev se agotaba con el uso normal y bloqueaba todo durante 60s.
         name: 'global',
         ttl: configService.get<number>('THROTTLE_TTL_MS', 60_000),
-        limit: configService.get<number>('THROTTLE_LIMIT', isProd ? 120 : 600),
+        limit: configService.get<number>(
+          'THROTTLE_LIMIT',
+          isProd ? 120000 : 600,
+        ),
       },
       {
         name: 'auth',

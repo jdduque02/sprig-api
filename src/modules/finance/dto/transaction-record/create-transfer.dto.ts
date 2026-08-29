@@ -1,6 +1,7 @@
 import {
   IsBoolean,
   IsDateString,
+  IsEnum,
   IsInt,
   IsNumber,
   IsOptional,
@@ -14,6 +15,7 @@ import {
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
+import { FixedTypeEnum, FrequencyEnum } from '@shared/enums';
 
 @ValidatorConstraint({ name: 'distinctTransferEntities', async: false })
 class DistinctTransferEntitiesConstraint implements ValidatorConstraintInterface {
@@ -131,4 +133,41 @@ export class CreateTransferDto {
   @IsInt()
   @Min(1)
   company_id?: number;
+
+  @ApiPropertyOptional({
+    description: 'Tipo de movimiento fijo (deducción o ingreso fijo).',
+    enum: FixedTypeEnum,
+  })
+  @IsOptional()
+  @IsEnum(FixedTypeEnum)
+  fixed_type?: FixedTypeEnum;
+
+  @ApiPropertyOptional({
+    description: 'Frecuencia del movimiento fijo.',
+    enum: FrequencyEnum,
+  })
+  @IsOptional()
+  @IsEnum(FrequencyEnum)
+  frequency?: FrequencyEnum;
+
+  @ApiPropertyOptional({
+    description: 'Día del mes en que vence el movimiento fijo.',
+    example: 15,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @MaxLength(31)
+  due_day?: number;
+
+  @ApiPropertyOptional({
+    description: 'Días de anticipación para el recordatorio.',
+    example: 3,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  reminder_days?: number;
 }

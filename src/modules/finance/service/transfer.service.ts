@@ -3,6 +3,7 @@ import { TransactionRecordRepository } from '@finance/repositories/transaction-r
 import { TransactionRecord } from '@finance/entities/transaction-record.entity';
 import { CreateTransferDto } from '@finance/dto/transaction-record/create-transfer.dto';
 import { UpdateTransferDto } from '@finance/dto/transaction-record/update-transfer.dto';
+import { CloneTransferDto } from '@finance/dto/transaction-record/clone-transfer.dto';
 import {
   TransferMovementDto,
   TransferResponseDto,
@@ -66,6 +67,15 @@ export class TransferService {
     return this.transactionRecordRepository.softDeleteTransfer(id, userId);
   }
 
+  async clone(
+    id: number,
+    userId: number,
+    dto: CloneTransferDto,
+  ): Promise<TransferResponseDto> {
+    const pair = await this.transactionRecordRepository.cloneTransfer(id, userId, dto);
+    return this.toResponseDto(pair);
+  }
+
   /**
    * Como findTransfers devuelve ambos lados de cada par, agrupa por
    * transfer_group_id para devolver una transferencia por grupo.
@@ -95,6 +105,11 @@ export class TransferService {
       reference_code: first.reference_code ?? null,
       objective_id: destination.objective_id ?? null,
       destination_liability_id: destination.liability_id ?? null,
+      is_fixed: first.is_fixed ?? false,
+      frequency: first.frequency ?? null,
+      fixed_type: first.fixed_type ?? null,
+      due_day: first.due_day ?? null,
+      reminder_days: first.reminder_days ?? null,
       source: this.toMovementDto(source, 'source'),
       destination: this.toMovementDto(destination, 'destination'),
     };

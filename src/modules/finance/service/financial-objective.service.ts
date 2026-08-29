@@ -123,11 +123,13 @@ export class FinancialObjectiveService {
     const today = todayInTimeZone(timezone);
     const startDate = dto.start_date ?? today;
 
-    if (!dto.end_date) {
-      const noEndDateResponse: CalculateQuotaResponseDto = {
-        target_amount: dto.target_amount,
+    if (!dto.end_date || dto.target_amount == null) {
+      const noPlanResponse: CalculateQuotaResponseDto = {
+        target_amount: dto.target_amount ?? null,
         current_balance: dto.current_balance ?? 0,
-        amount_to_save: dto.target_amount - (dto.current_balance ?? 0),
+        amount_to_save: dto.target_amount
+          ? Math.max(0, dto.target_amount - (dto.current_balance ?? 0))
+          : null,
         start_date: startDate,
         end_date: null,
         frequency: dto.frequency,
@@ -149,16 +151,21 @@ export class FinancialObjectiveService {
         ],
       };
 
-      await this.logCalculation(userId, noEndDateResponse);
-      return noEndDateResponse;
+      await this.logCalculation(userId, noPlanResponse);
+      return noPlanResponse;
     }
 
     // 3. Validar montos
-    const amountToSave = dto.target_amount - (dto.current_balance ?? 0);
+    const amountToSave = Math.max(
+      0,
+      dto.target_amount - (dto.current_balance ?? 0),
+    );
 
-    if (amountToSave <= 0) {
-      throw new BadRequestException(
-        this.i18n.t('finance.OBJECTIVE_ALREADY_REACHED'),
+    if (amountToSave === 0) {
+      warnings.push(
+        'Ya alcanzaste o superaste tu objetivo de ahorro: tu saldo actual ' +
+          'iguala o supera el monto objetivo. La cuota sugerida es $0, ' +
+          'por lo que no necesitas ahorrar más.',
       );
     }
 

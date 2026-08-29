@@ -25,6 +25,7 @@ import { ApiIntrospectGuardResponse } from '@auth/decorators/api-introspect-guar
 import { CurrentUser } from '@auth/decorators/current-user.decorator';
 import { IntrospectResponse } from '@auth/interfaces/IntrospectResponse.dto';
 import { BankAccountService } from '@banking/service/bank-account.service';
+import { InterestAccrualScheduler } from '@banking/service/interest-accrual.scheduler';
 import { CreateBankAccountDto } from '@banking/dto/bank-account/create-bank-account.dto';
 import { UpdateBankAccountDto } from '@banking/dto/bank-account/update-bank-account.dto';
 import { BankAccountResponseDto } from '@banking/dto/bank-account/bank-account-response.dto';
@@ -35,7 +36,10 @@ import { ErrorResponseDto } from '@shared/dto/error-response.dto';
 @ApiIntrospectGuardResponse()
 @Controller('users/:userId/bank-accounts')
 export class BankAccountController {
-  constructor(private readonly bankAccountService: BankAccountService) {}
+  constructor(
+    private readonly bankAccountService: BankAccountService,
+    private readonly interestAccrualScheduler: InterestAccrualScheduler,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -157,5 +161,21 @@ export class BankAccountController {
     @CurrentUser() _currentUser: IntrospectResponse,
   ) {
     return this.bankAccountService.getProjectedYield(id, userId);
+  }
+
+  @Post('accrue-interest')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Ejecutar capitalización de intereses manual (backfill/dev)',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Resultado de la ejecución.',
+  })
+  async accrueInterest(
+    @Param('userId', ParseIntPipe) _userId: number,
+    @CurrentUser() _currentUser: IntrospectResponse,
+  ) {
+    return this.interestAccrualScheduler.triggerManual();
   }
 }

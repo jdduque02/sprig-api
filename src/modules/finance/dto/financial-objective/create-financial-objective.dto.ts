@@ -51,11 +51,16 @@ export class CreateFinancialObjectiveDto {
   @IsEnum(FinancialObjectiveTypeEnum)
   type!: FinancialObjectiveTypeEnum;
 
-  @ApiProperty({ description: 'Monto objetivo.', example: 10000000 })
+  @ApiPropertyOptional({
+    description:
+      'Monto objetivo. Opcional para metas abiertas (sin monto ni fecha fin).',
+    example: 10000000,
+  })
+  @IsOptional()
   @Type(() => Number)
   @IsNumber()
   @Min(0)
-  target_amount!: number;
+  target_amount?: number;
 
   @ApiPropertyOptional({
     description: 'Saldo actual ahorrado hacia el objetivo.',

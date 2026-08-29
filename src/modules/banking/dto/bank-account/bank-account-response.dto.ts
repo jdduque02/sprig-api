@@ -41,6 +41,67 @@ export class BankAccountResponseDto {
   })
   yield_frequency!: string;
 
+  @ApiProperty({
+    description: 'Tipo de tasa: EA (Efectiva Anual), nominal, MV (Mes Vencido).',
+    example: 'EA',
+    enum: ['EA', 'nominal', 'MV'],
+  })
+  rate_type!: string;
+
+  @ApiProperty({
+    description: 'Si true, el job de interés capitaliza automáticamente esta cuenta.',
+    example: true,
+  })
+  interest_enabled!: boolean;
+
+  @ApiProperty({
+    description: 'Fecha del último interés aplicado (null = nunca).',
+    example: '2026-08-25',
+    nullable: true,
+  })
+  last_interest_applied_at!: string | null;
+
+  @ApiProperty({
+    description: 'Fecha de inicio del interés (null = created_at).',
+    example: '2026-08-01',
+    nullable: true,
+  })
+  interest_start_date!: string | null;
+
+  @ApiProperty({
+    description: 'Plazo del CDT en días (null = no es CDT).',
+    example: 360,
+    nullable: true,
+  })
+  term_days!: number | null;
+
+  @ApiProperty({
+    description: 'Fecha de inicio del ciclo CDT actual.',
+    example: '2026-08-01',
+    nullable: true,
+  })
+  start_date!: string | null;
+
+  @ApiProperty({
+    description: 'Fecha de vencimiento del CDT (calculada: start_date + term_days).',
+    example: '2027-08-01',
+    nullable: true,
+  })
+  maturity_date!: string | null;
+
+  @ApiProperty({
+    description: 'Acción al vencer el CDT.',
+    example: 'renew',
+    enum: ['renew'],
+  })
+  maturity_action!: string;
+
+  @ApiProperty({
+    description: 'Si true, el CDT se renueva automáticamente al vencer.',
+    example: true,
+  })
+  auto_renew!: boolean;
+
   @ApiProperty({ example: false })
   is_primary!: boolean;
 

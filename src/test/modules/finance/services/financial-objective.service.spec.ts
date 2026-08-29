@@ -194,6 +194,20 @@ describe('FinancialObjectiveService', () => {
       expect(result.recommendations.length).toBeGreaterThan(0);
     });
 
+    it('sin target_amount retorna respuesta abierta sin calcular cuotas', async () => {
+      const result = await service.calculateQuota(10, {
+        target_amount: undefined,
+        current_balance: 0,
+        frequency: 'monthly' as never,
+      });
+
+      expect(result.total_periods).toBe(0);
+      expect(result.quota_amount).toBe(0);
+      expect(result.target_amount).toBeNull();
+      expect(result.amount_to_save).toBeNull();
+      expect(result.recommendations.length).toBeGreaterThan(0);
+    });
+
     it('rechaza rango de fechas inválido', async () => {
       await expect(
         service.calculateQuota(10, {

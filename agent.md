@@ -8,7 +8,8 @@ Este proyecto es el backend de una aplicación de gestión de finanzas personale
 - **Base de Datos**: PostgreSQL 16 (Particionamiento y esquemas por dominio)
 - **ORM**: TypeORM
 - **Autenticación**: Keycloak (JWT) + nest-keycloak-connect
-- **Caché y Mensajería**: Redis + BullMQ (Para comunicación asíncrona entre módulos)
+- **Caché**: Redis
+- **Mensajería**: RabbitMQ (`@nestjs/microservices` + `amqplib`, para comunicación asíncrona entre módulos)
 - **Documentación API**: Swagger (`@nestjs/swagger`)
 - **Testing**: Jest (Unitario y E2E con Supertest)
 - **Calidad de Código**: ESLint, Prettier, SonarQube, Husky/Commitlint
@@ -38,7 +39,7 @@ El proyecto sigue una estructura fuertemente modular:
 Al escribir o refactorizar código en este proyecto, se DEBEN seguir estrictamente estas reglas:
 
 1. **Aislamiento de Módulos**: NINGÚN módulo debe acceder directamente al repositorio (`Repository<T>`) de otro módulo.
-2. **Comunicación Cruzada**: La comunicación síncrona entre módulos debe limitarse y preferir la inyección de servicios. La comunicación asíncrona (eventos) DEBE realizarse a través de **BullMQ**.
+2. **Comunicación Cruzada**: La comunicación síncrona entre módulos debe limitarse y preferir la inyección de servicios. La comunicación asíncrona (eventos) DEBE realizarse a través de **RabbitMQ** (`@nestjs/microservices`).
 3. **Módulo Compartido**: `SharedModule` es global. Solo debe contener y exponer infraestructura técnica, **NUNCA lógica de negocio**.
 4. **Reglas de Base de Datos**:
    - Se usan **esquemas de PostgreSQL** separados por dominio (`identity`, `catalog`, `finance`, etc.).

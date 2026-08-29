@@ -120,7 +120,7 @@ async function bootstrap() {
 
     SwaggerModule.setup(`api/v${swaggerVersion}/docs`, app, documentFactory, {
       customCss: getSwaggerCustomCss(),
-      customJs: getSwaggerCustomJs(logoBase64),
+      customJsStr: getSwaggerCustomJs(logoBase64),
       customSiteTitle: 'Sprig API Docs',
       customfavIcon: `data:image/svg+xml;base64,${logoBase64}`,
       jsonDocumentUrl: `api/v${swaggerVersion}/docs-json`,
@@ -157,4 +157,4 @@ async function bootstrap() {
   process.on('SIGTERM', () => void shutdown('SIGTERM'));
   process.on('SIGINT', () => void shutdown('SIGINT'));
 }
-bootstrap();
+void bootstrap();

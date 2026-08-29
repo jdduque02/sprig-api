@@ -43,6 +43,33 @@ export class BankAccount {
   @Column({ type: 'varchar', length: 10, default: 'monthly' })
   yield_frequency!: string;
 
+  @Column({ type: 'varchar', length: 10, default: 'EA' })
+  rate_type!: string;
+
+  @Column({ type: 'boolean', default: true })
+  interest_enabled!: boolean;
+
+  @Column({ type: 'date', nullable: true })
+  last_interest_applied_at!: string | null;
+
+  @Column({ type: 'date', nullable: true })
+  interest_start_date!: string | null;
+
+  @Column({ type: 'int', nullable: true })
+  term_days!: number | null;
+
+  @Column({ type: 'date', nullable: true })
+  start_date!: string | null;
+
+  @Column({ type: 'date', nullable: true })
+  maturity_date!: string | null;
+
+  @Column({ type: 'varchar', length: 20, default: 'renew' })
+  maturity_action!: string;
+
+  @Column({ type: 'boolean', default: true })
+  auto_renew!: boolean;
+
   @Column({ type: 'boolean', default: false })
   @Index('idx_bank_account_primary')
   is_primary!: boolean;

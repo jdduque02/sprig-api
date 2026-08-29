@@ -429,7 +429,7 @@ CREATE TABLE IF NOT EXISTS finance.financial_objective (
   subcategory_id          BIGINT,
   name                    VARCHAR(200)                      NOT NULL,
   type                    financial_objective_type_enum     NOT NULL,
-  target_amount           NUMERIC(15,2)                     NOT NULL,
+  target_amount           NUMERIC(15,2),                  -- Nullable: metas abiertas sin monto objetivo
   current_balance         NUMERIC(15,2)                     NOT NULL DEFAULT 0,
   interest_rate           NUMERIC(5,2),
   fees                    NUMERIC(15,2),

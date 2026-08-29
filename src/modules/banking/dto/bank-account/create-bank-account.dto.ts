@@ -1,5 +1,7 @@
 import {
   IsBoolean,
+  IsIn,
+  IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -86,4 +88,68 @@ export class CreateBankAccountDto {
   @IsString()
   @MaxLength(10)
   yield_frequency?: string;
+
+  @ApiPropertyOptional({
+    description: 'Tipo de tasa: EA (Efectiva Anual), nominal, MV (Mes Vencido).',
+    example: 'EA',
+    enum: ['EA', 'nominal', 'MV'],
+  })
+  @IsOptional()
+  @IsString()
+  @IsIn(['EA', 'nominal', 'MV'])
+  @MaxLength(10)
+  rate_type?: string;
+
+  @ApiPropertyOptional({
+    description: 'Si true, el job de interés capitaliza automáticamente esta cuenta.',
+    example: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  interest_enabled?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Fecha de inicio del interés (null = created_at).',
+    example: '2026-08-01',
+  })
+  @IsOptional()
+  @IsString()
+  interest_start_date?: string;
+
+  @ApiPropertyOptional({
+    description: 'Plazo del CDT en días (requerido si account_type = cdt).',
+    example: 360,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  term_days?: number;
+
+  @ApiPropertyOptional({
+    description: 'Fecha de inicio del ciclo CDT (requerido si account_type = cdt).',
+    example: '2026-08-01',
+  })
+  @IsOptional()
+  @IsString()
+  start_date?: string;
+
+  @ApiPropertyOptional({
+    description: 'Acción al vencer el CDT (default: renew).',
+    example: 'renew',
+    enum: ['renew'],
+  })
+  @IsOptional()
+  @IsString()
+  @IsIn(['renew'])
+  @MaxLength(20)
+  maturity_action?: string;
+
+  @ApiPropertyOptional({
+    description: 'Si true, el CDT se renueva automáticamente al vencer.',
+    example: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  auto_renew?: boolean;
 }

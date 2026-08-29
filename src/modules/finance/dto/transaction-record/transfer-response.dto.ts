@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { FixedTypeEnum, FrequencyEnum } from '@shared/enums';
 
 export class TransferMovementDto {
   @ApiProperty({ example: 100 })
@@ -97,6 +98,21 @@ export class TransferResponseDto {
     nullable: true,
   })
   destination_liability_id!: number | null;
+
+  @ApiPropertyOptional({ enum: FrequencyEnum, nullable: true })
+  frequency!: FrequencyEnum | null;
+
+  @ApiPropertyOptional({ enum: FixedTypeEnum, nullable: true })
+  fixed_type!: FixedTypeEnum | null;
+
+  @ApiPropertyOptional({ example: 15, nullable: true })
+  due_day!: number | null;
+
+  @ApiPropertyOptional({ example: 3, nullable: true })
+  reminder_days!: number | null;
+
+  @ApiPropertyOptional({ example: false })
+  is_fixed!: boolean;
 
   @ApiProperty({ type: TransferMovementDto })
   source!: TransferMovementDto;

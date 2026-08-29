@@ -28,7 +28,7 @@ export function getRefreshCookieOptions(
   const apiVersion = configService.get<string>('VERSION') ?? '1';
   return baseCookieOptions(
     configService,
-    maxAgeMs ?? 30 * 60 * 1000,
+    maxAgeMs ?? 7 * 24 * 60 * 60 * 1000, // 7 days
     `/api/v${apiVersion}/auth`,
   );
 }

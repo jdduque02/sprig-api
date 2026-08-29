@@ -26,6 +26,7 @@ import { UpdateTransactionRecordDto } from '@finance/dto/transaction-record/upda
 import { CreateTransferDto } from '@finance/dto/transaction-record/create-transfer.dto';
 import { UpdateTransferDto } from '@finance/dto/transaction-record/update-transfer.dto';
 import { CloneTransactionDto } from '@finance/dto/transaction-record/clone-transaction.dto';
+import { CloneTransferDto } from '@finance/dto/transaction-record/clone-transfer.dto';
 import { TransactionRecordQueryDto } from '@finance/dto/transaction-record/transaction-record-query.dto';
 import { TransactionSummaryQueryDto } from '@finance/dto/transaction-record/transaction-summary-query.dto';
 import { TransactionSummaryResponseDto } from '@finance/dto/transaction-record/transaction-summary-response.dto';
@@ -647,6 +648,11 @@ export class TransactionRecordRepository {
         source_account: source.account_type,
         source_bank: source.bank_name,
         company_id: dto.company_id ?? null,
+        is_fixed: dto.is_fixed ?? false,
+        ...(dto.fixed_type != null ? { fixed_type: dto.fixed_type } : {}),
+        ...(dto.frequency != null ? { frequency: dto.frequency } : {}),
+        due_day: dto.due_day ?? null,
+        reminder_days: dto.reminder_days ?? null,
       };
 
       let destAccountType: string | null = null;
@@ -759,6 +765,11 @@ export class TransactionRecordRepository {
       if (dto.description !== undefined) fields.description = dto.description;
       if (dto.reference_code !== undefined)
         fields.reference_code = dto.reference_code;
+      if (dto.is_fixed !== undefined) fields.is_fixed = dto.is_fixed;
+      if (dto.fixed_type !== undefined) fields.fixed_type = dto.fixed_type;
+      if (dto.frequency !== undefined) fields.frequency = dto.frequency;
+      if (dto.due_day !== undefined) fields.due_day = dto.due_day;
+      if (dto.reminder_days !== undefined) fields.reminder_days = dto.reminder_days;
       for (const record of records) {
         const merged = recordRepo.merge(record, fields);
         if (
@@ -814,6 +825,14 @@ export class TransactionRecordRepository {
         'account',
         tx.destination_account_id,
         amount * sign,
+      );
+    }
+    if (tx.liability_id != null) {
+      await this.applyToEntity(
+        manager,
+        'liability',
+        tx.liability_id,
+        -amount * sign,
       );
     }
     if (tx.objective_id != null) {
@@ -967,19 +986,6 @@ export class TransactionRecordRepository {
     net: Map<string, number>,
   ): void {
     if (!tx) return;
-    const amount = Number(tx.amount ?? 0);
-    if (tx.type === TransactionTypeEnum.TRANSFER) {
-      // Las transferencias ligan cuentas por origin/destination_account_id
-      // (no por account_id), así que sus saldos se revierten explícitamente.
-      if (tx.origin_account_id != null) {
-        const key = `account:${tx.origin_account_id}`;
-        net.set(key, (net.get(key) ?? 0) + sign * -amount);
-      }
-      if (tx.destination_account_id != null) {
-        const key = `account:${tx.destination_account_id}`;
-        net.set(key, (net.get(key) ?? 0) + sign * amount);
-      }
-    }
     for (const kind of LINK_KINDS) {
       const id = tx[`${kind}_id` as keyof TransactionRecord] as
         number | null | undefined;
@@ -1011,15 +1017,20 @@ export class TransactionRecordRepository {
         );
         const next = current + delta;
         if (next < 0) {
-          throw new BadRequestException(
-            this.i18n.t('finance.NEGATIVE_BALANCE_NOT_ALLOWED', {
+          throw new BadRequestException({
+            code: 'NEGATIVE_BALANCE_NOT_ALLOWED',
+            account_id: account.id,
+            name: account.bank_name ?? 'cuenta',
+            current,
+            amount: Math.abs(delta),
+            message: this.i18n.t('finance.NEGATIVE_BALANCE_NOT_ALLOWED', {
               args: {
                 name: account.bank_name ?? 'cuenta',
                 current: String(current),
                 amount: String(Math.abs(delta)),
               },
             }),
-          );
+          });
         }
         account.encrypted_balance = this.encryptionService.encryptField(
           String(next),
@@ -1064,6 +1075,7 @@ export class TransactionRecordRepository {
   /**
    * Clona una transacción existente creando una nueva con los campos copiados.
    * Permite sobreescribir fecha, monto, descripción, categoría y empresa.
+   * Si la transacción original es parte de una transferencia, lanza BadRequest.
    */
   async clone(
     id: number,
@@ -1071,6 +1083,11 @@ export class TransactionRecordRepository {
     dto: CloneTransactionDto,
   ): Promise<TransactionRecord> {
     const original = await this.findById(id, userId);
+    if (original.transfer_group_id) {
+      throw new BadRequestException(
+        this.i18n.t('finance.CLONE_TRANSFER_NOT_ALLOWED'),
+      );
+    }
     return this.dataSource.transaction(async (manager) => {
       const recordRepo = manager.getRepository(TransactionRecord);
       const ruleRepo = manager.getRepository(TransactionCategoryRule);
@@ -1131,6 +1148,93 @@ export class TransactionRecordRepository {
       await this.applyLinkAdjustments(manager, null, saved);
       this.logger.log(
         `Transacción ID ${id} clonada como ID ${saved.id} para usuario ID: ${userId}`,
+      );
+      return saved;
+    });
+  }
+
+  /**
+   * Clona una transferencia (par de movimientos). El id puede pertenecer a
+   * cualquiera de las piernas. Crea un nuevo par con un transfer_group_id
+   * distinto y aplica los ajustes de saldo.
+   *
+   * Si el par está incompleto (p. ej. una pierna fue eliminada), clona las
+   * piernas que existan conservando su tipo (origen debita, destino acredita)
+   * en lugar de lanzar un error.
+   */
+  async cloneTransfer(
+    id: number,
+    userId: number,
+    dto: CloneTransferDto,
+  ): Promise<TransactionRecord[]> {
+    const records = await this.findTransferById(id, userId);
+    if (records.length === 0) {
+      throw new NotFoundException(
+        this.i18n.t('finance.TRANSFER_NOT_FOUND', { args: { id } }),
+      );
+    }
+
+    const template =
+      records.find((r) => r.origin_account_id != null) ??
+      records.find((r) => r.destination_account_id != null || r.liability_id != null) ??
+      records[0];
+    const originalAmount = Number(template.amount ?? 0);
+    const newAmount = dto.amount ?? originalAmount;
+    const newDate = dto.transaction_date ?? template.transaction_date;
+    const newDescription = dto.description ?? template.description;
+    const newGroupId = randomUUID();
+
+    return this.dataSource.transaction(async (manager) => {
+      const recordRepo = manager.getRepository(TransactionRecord);
+      const saved: TransactionRecord[] = [];
+
+      for (const record of records) {
+        const clonedData: DeepPartial<TransactionRecord> = {
+          user_id: userId,
+          type: TransactionTypeEnum.TRANSFER,
+          amount: newAmount,
+          currency: template.currency ?? 'COP',
+          transfer_group_id: newGroupId,
+          transaction_date: newDate as unknown as Date,
+          description: newDescription,
+          reference_code: template.reference_code,
+          category_status: ReviewStatusEnum.CATEGORIZED,
+          company_id: template.company_id,
+          is_fixed: template.is_fixed,
+          fixed_type: template.fixed_type,
+          frequency: template.frequency,
+          due_day: template.due_day,
+          reminder_days: template.reminder_days,
+        };
+
+        if (record.origin_account_id != null) {
+          clonedData.origin_account_id = record.origin_account_id;
+          clonedData.source_account = record.source_account;
+          clonedData.source_bank = record.source_bank;
+        } else {
+          clonedData.source_account = template.source_account;
+          clonedData.source_bank = template.source_bank;
+        }
+
+        if (record.destination_account_id != null) {
+          clonedData.destination_account_id = record.destination_account_id;
+          clonedData.destination_account = record.destination_account;
+          clonedData.destination_bank = record.destination_bank;
+          clonedData.objective_id = record.objective_id;
+        } else if (record.liability_id != null) {
+          clonedData.liability_id = record.liability_id;
+          clonedData.destination_account = record.destination_account;
+          clonedData.destination_bank = record.destination_bank;
+          clonedData.objective_id = record.objective_id;
+        }
+
+        const savedRecord = await recordRepo.save(recordRepo.create(clonedData));
+        await this.applyTransferAdjustment(manager, savedRecord, 1);
+        saved.push(savedRecord);
+      }
+
+      this.logger.log(
+        `Transferencia ${newGroupId} clonada desde ${id} (${saved.length} piernas) para usuario ID: ${userId}`,
       );
       return saved;
     });
