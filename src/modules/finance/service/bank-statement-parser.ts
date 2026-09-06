@@ -1,4 +1,4 @@
-import * as pdfjs from 'pdfjs-dist/build/pdf.js';
+import { join, sep } from 'node:path';
 import { TransactionTypeEnum } from '@shared/enums';
 
 // ============================================================
@@ -8,6 +8,25 @@ import { TransactionTypeEnum } from '@shared/enums';
 //   clasifica; si no hay cabecera, usa heurísticas por posición.
 // - Soporta PDF con contraseña vía `password`.
 // ============================================================
+
+type PdfjsModule = typeof import('pdfjs-dist/legacy/build/pdf.mjs');
+
+// `pdfjs-dist` >=4 se distribuye solo como ESM. Este proyecto compila a
+// CommonJS, así que un `import()` normal sería reescrito por TypeScript a
+// `require(...)`, que no puede cargar un módulo `.mjs`. `new Function` oculta
+// el `import()` de esa transformación y fuerza el import dinámico real de
+// Node en tiempo de ejecución.
+// eslint-disable-next-line @typescript-eslint/no-implied-eval -- literal estático, no evalúa entrada externa; es el workaround estándar para invocar el import() nativo de Node desde código compilado a CommonJS.
+const importPdfjs = new Function(
+  'return import("pdfjs-dist/legacy/build/pdf.mjs")',
+) as () => Promise<PdfjsModule>;
+
+/** Envuelto en un objeto exportado para que los tests puedan mockearlo con `jest.spyOn`. */
+export const pdfjsLoader = { load: importPdfjs };
+
+const STANDARD_FONT_DATA_URL =
+  join(require.resolve('pdfjs-dist/package.json'), '..', 'standard_fonts') +
+  sep;
 
 const MAX_TRANSACTIONS_PER_FILE = 5000;
 const MAX_LINES_PER_FILE = 20000;
@@ -83,13 +102,14 @@ export async function extractTextLines(
   buffer: Buffer,
   password?: string,
 ): Promise<TextLine[]> {
-  (pdfjs as unknown as { disableWorker: boolean }).disableWorker = true;
+  const pdfjs = await pdfjsLoader.load();
 
-  let doc: import('pdfjs-dist/build/pdf.js').PDFDocumentProxy;
+  let doc: Awaited<ReturnType<PdfjsModule['getDocument']>['promise']>;
   try {
     const loadingTask = pdfjs.getDocument({
       data: new Uint8Array(buffer),
       password,
+      standardFontDataUrl: STANDARD_FONT_DATA_URL,
     });
     doc = await loadingTask.promise;
   } catch (err) {
@@ -118,7 +138,7 @@ export async function extractTextLines(
       if (tokens.length > MAX_LINES_PER_FILE * 8) break;
     }
   } finally {
-    doc.destroy?.();
+    void doc.destroy?.();
   }
 
   const maxX = Math.max(...tokens.map((t) => t.x), 1);
