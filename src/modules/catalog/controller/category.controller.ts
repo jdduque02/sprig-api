@@ -19,6 +19,7 @@ import {
   ApiNotFoundResponse,
   ApiConflictResponse,
   ApiInternalServerErrorResponse,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { AuthGuard } from '@auth/guards/auth.guard';
 import { ApiIntrospectGuardResponse } from '@auth/decorators/api-introspect-guard-response.decorator';
@@ -31,6 +32,7 @@ import { ErrorResponseDto } from '@shared/dto/error-response.dto';
 @ApiTags('catalog')
 @UseGuards(AuthGuard)
 @ApiIntrospectGuardResponse()
+@ApiBearerAuth('bearer')
 @Controller('catalog/categories')
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}

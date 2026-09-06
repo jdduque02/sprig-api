@@ -27,6 +27,7 @@ import {
   ApiInternalServerErrorResponse,
   ApiExtraModels,
   getSchemaPath,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { ApiIntrospectGuardResponse } from '@auth/decorators/api-introspect-guard-response.decorator';
 import { BearerToken } from '@auth/decorators/bearer-token.decorator';
@@ -289,6 +290,7 @@ export class AuthController {
 
   @Post('change-password')
   @UseGuards(AuthGuard)
+  @ApiBearerAuth('bearer')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Cambiar contraseña del usuario autenticado' })
   @ApiResponse({
@@ -314,6 +316,7 @@ export class AuthController {
   @Get('sessions')
   @UseGuards(AuthGuard)
   @ApiIntrospectGuardResponse()
+  @ApiBearerAuth('bearer')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Listar sesiones activas del usuario' })
   @ApiResponse({
@@ -332,6 +335,7 @@ export class AuthController {
   @Delete('sessions/:sessionId')
   @UseGuards(AuthGuard)
   @ApiIntrospectGuardResponse()
+  @ApiBearerAuth('bearer')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Revocar una sesión específica' })
   @ApiNoContentResponse({
@@ -351,6 +355,7 @@ export class AuthController {
   @Get('access-history')
   @UseGuards(AuthGuard)
   @ApiIntrospectGuardResponse()
+  @ApiBearerAuth('bearer')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Obtener historial de accesos del usuario' })
   @ApiResponse({

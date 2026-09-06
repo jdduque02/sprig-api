@@ -20,6 +20,7 @@ import {
   ApiNotFoundResponse,
   ApiInternalServerErrorResponse,
   ApiQuery,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '@auth/guards/auth.guard';
@@ -38,6 +39,7 @@ import { ErrorResponseDto } from '@shared/dto/error-response.dto';
 @UseGuards(AuthGuard, OwnershipGuard)
 @ApiIntrospectGuardResponse()
 @Throttle({ global: { limit: 300, ttl: 60_000 } })
+@ApiBearerAuth('bearer')
 @Controller('users/:userId/transfers')
 export class TransferController {
   constructor(private readonly transferService: TransferService) {}

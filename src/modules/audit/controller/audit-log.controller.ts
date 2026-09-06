@@ -17,6 +17,7 @@ import {
   ApiExtraModels,
   ApiQuery,
   getSchemaPath,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { AuthGuard } from '@auth/guards/auth.guard';
 import { ApiIntrospectGuardResponse } from '@auth/decorators/api-introspect-guard-response.decorator';
@@ -28,6 +29,7 @@ import { ErrorResponseDto } from '@shared/dto/error-response.dto';
 @ApiTags('audit')
 @UseGuards(AuthGuard)
 @ApiIntrospectGuardResponse()
+@ApiBearerAuth('bearer')
 @Controller('audit')
 export class AuditLogController {
   constructor(private readonly auditLogService: AuditLogService) {}

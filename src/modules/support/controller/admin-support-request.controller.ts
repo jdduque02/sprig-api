@@ -16,6 +16,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiTags,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { AuthGuard } from '@auth/guards/auth.guard';
 import { AdminGuard } from '@auth/guards/admin.guard';
@@ -28,6 +29,7 @@ import { ErrorResponseDto } from '@shared/dto/error-response.dto';
 @ApiTags('support (admin)')
 @UseGuards(AuthGuard, AdminGuard)
 @ApiIntrospectGuardResponse()
+@ApiBearerAuth('bearer')
 @Controller('admin/support-requests')
 export class AdminSupportRequestController {
   constructor(private readonly supportRequestService: SupportRequestService) {}

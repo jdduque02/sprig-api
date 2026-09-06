@@ -21,6 +21,7 @@ import {
   ApiExtraModels,
   ApiQuery,
   getSchemaPath,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { UserService } from '@identity/service/user.service';
 import { CreateUserDto } from '@identity/dto/user/create-user.dto';
@@ -68,6 +69,7 @@ export class UserController {
   @Get()
   @UseGuards(AuthGuard, AdminGuard)
   @ApiIntrospectGuardResponse()
+  @ApiBearerAuth('bearer')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Listar usuarios paginados (admin)' })
   @ApiQuery({
@@ -109,6 +111,7 @@ export class UserController {
   @Get(':id')
   @UseGuards(AuthGuard, OwnershipGuard)
   @ApiIntrospectGuardResponse()
+  @ApiBearerAuth('bearer')
   @ApiOperation({ summary: 'Obtener usuario por ID' })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -126,6 +129,7 @@ export class UserController {
   @Patch(':id')
   @UseGuards(AuthGuard, OwnershipGuard)
   @ApiIntrospectGuardResponse()
+  @ApiBearerAuth('bearer')
   @ApiOperation({ summary: 'Actualizar información del usuario' })
   @ApiResponse({
     status: HttpStatus.OK,

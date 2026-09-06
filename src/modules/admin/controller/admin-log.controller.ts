@@ -16,6 +16,7 @@ import {
   ApiExtraModels,
   ApiQuery,
   getSchemaPath,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { AuthGuard } from '@auth/guards/auth.guard';
 import { AdminGuard } from '@auth/guards/admin.guard';
@@ -29,6 +30,7 @@ import { Observable, interval, switchMap, map } from 'rxjs';
 @ApiTags('admin / logs')
 @UseGuards(AuthGuard, AdminGuard)
 @ApiIntrospectGuardResponse()
+@ApiBearerAuth('bearer')
 @Controller('admin/logs')
 export class AdminLogController {
   constructor(private readonly adminLogService: AdminLogService) {}

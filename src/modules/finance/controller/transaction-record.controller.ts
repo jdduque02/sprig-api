@@ -22,6 +22,7 @@ import {
   ApiExtraModels,
   ApiQuery,
   getSchemaPath,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { AuthGuard } from '@auth/guards/auth.guard';
 import { OwnershipGuard } from '@auth/guards/ownership.guard';
@@ -48,6 +49,7 @@ import { ErrorResponseDto } from '@shared/dto/error-response.dto';
   TransactionSummaryResponseDto,
   UpcomingPaymentDto,
 )
+@ApiBearerAuth('bearer')
 @Controller('users/:userId/transactions')
 export class TransactionRecordController {
   constructor(
