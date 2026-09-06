@@ -3,6 +3,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Inject,
   InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
@@ -12,6 +13,7 @@ import {
   ApiOkResponse,
   ApiInternalServerErrorResponse,
 } from '@nestjs/swagger';
+import { I18nService } from 'nestjs-i18n';
 import {
   MarketDataService,
   FxRates,
@@ -23,7 +25,10 @@ import { ErrorResponseDto } from '@shared/dto/error-response.dto';
 export class CurrencyController {
   private readonly logger = new Logger(CurrencyController.name);
 
-  constructor(private readonly marketDataService: MarketDataService) {}
+  constructor(
+    private readonly marketDataService: MarketDataService,
+    @Inject(I18nService) private readonly i18n: I18nService,
+  ) {}
 
   @Get('rates')
   @HttpCode(HttpStatus.OK)
@@ -45,7 +50,9 @@ export class CurrencyController {
       this.logger.error(
         `Error obteniendo tasa de cambio: ${(error as Error).message}`,
       );
-      throw new InternalServerErrorException('FX_RATE_UNAVAILABLE');
+      throw new InternalServerErrorException(
+        this.i18n.t('banking.FX_RATE_UNAVAILABLE'),
+      );
     }
   }
 }

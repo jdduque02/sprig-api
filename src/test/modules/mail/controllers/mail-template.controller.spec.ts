@@ -25,11 +25,16 @@ const mockRepo = {
   create: jest.fn((e: Partial<EmailTemplate>) => e),
 };
 
+const mockI18n = { t: jest.fn((key: string) => key) };
+
 describe('MailTemplateController', () => {
   let controller: MailTemplateController;
 
   beforeEach(() => {
-    controller = new MailTemplateController(mockRepo as never);
+    controller = new MailTemplateController(
+      mockRepo as never,
+      mockI18n as never,
+    );
     jest.clearAllMocks();
   });
 
@@ -65,6 +70,14 @@ describe('MailTemplateController', () => {
       await expect(controller.findOne('unknown_key')).rejects.toThrow(
         NotFoundException,
       );
+    });
+
+    it('traduce el mensaje de error usando la clave mail.TEMPLATE_NOT_FOUND', async () => {
+      mockRepo.findOne.mockResolvedValue(null);
+      await expect(controller.findOne('unknown_key')).rejects.toThrow();
+      expect(mockI18n.t).toHaveBeenCalledWith('mail.TEMPLATE_NOT_FOUND', {
+        args: { key: 'unknown_key' },
+      });
     });
   });
 

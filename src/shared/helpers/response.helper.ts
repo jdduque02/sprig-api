@@ -157,6 +157,12 @@ export class ResponseHelper {
   /**
    * Crea una respuesta de no encontrado
    *
+   * Sigue el mismo patrón que `unauthorized`/`forbidden`: `message` lleva la
+   * clave i18n (no un texto ya traducido), y `resource`/`identifier` viajan
+   * en `body` para que el consumidor (filtro/interceptor con acceso al
+   * I18nService) pueda interpolar los placeholders `{resource}`/`{identifier}`
+   * definidos en `shared.RESOURCE_NOT_FOUND` / `shared.RESOURCE_NOT_FOUND_WITH_ID`.
+   *
    * @param resource - Nombre del recurso no encontrado
    * @param identifier - Identificador del recurso (opcional)
    * @returns Respuesta de error 404
@@ -166,8 +172,8 @@ export class ResponseHelper {
     identifier?: string | number,
   ): ErrorApiResponse<{ resource: string; identifier?: string | number }> {
     const message = identifier
-      ? `${resource} con identificador '${identifier}' no encontrado`
-      : `${resource} no encontrado`;
+      ? 'shared.RESOURCE_NOT_FOUND_WITH_ID'
+      : 'shared.RESOURCE_NOT_FOUND';
 
     return this.error(message, {
       status: HttpStatus.NOT_FOUND,

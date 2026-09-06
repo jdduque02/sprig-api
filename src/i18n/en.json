@@ -40,7 +40,7 @@
     "USERNAME_NOT_FOUND": "User with username \"{username}\" not found.",
     "USER_NOT_DELETED": "User with id {id} is not deleted.",
     "USER_DUPLICATE": "A user with that email or username already exists.",
-    "DB_ERROR": "Unexpected database error.",
+    "DB_ERROR": "An unexpected error occurred while fetching the user's information from the database. Please try again later.",
     "OWNERSHIP_FAIL": "Could not verify the requester's identity.",
     "FORBIDDEN": "You do not have permission to access this resource."
   },
@@ -51,16 +51,17 @@
   "catalog": {
     "CATEGORY_NOT_FOUND": "Category with id {id} not found.",
     "CATEGORY_DUPLICATE": "A category with that name already exists.",
-    "PROCESSING_ERROR": "Error processing the request.",
+    "PROCESSING_ERROR": "Could not complete the operation on the category due to an unexpected database error. Please try again later.",
     "SUBCATEGORY_NOT_FOUND": "Subcategory with id {id} not found.",
     "SUBCATEGORY_DUPLICATE": "A subcategory with that name already exists in this category."
   },
   "banking": {
     "BANK_ACCOUNT_NOT_FOUND": "Bank account with id {id} not found.",
     "BANK_ACCOUNT_DUPLICATE": "An account with those details already exists.",
-    "PROCESSING_ERROR": "Error processing the request.",
+    "PROCESSING_ERROR": "Could not complete the operation on the bank account due to an unexpected database error. Please try again later.",
     "ASSET_NOT_FOUND": "Financial asset with id {id} not found.",
-    "LIABILITY_NOT_FOUND": "Financial liability with id {id} not found."
+    "LIABILITY_NOT_FOUND": "Financial liability with id {id} not found.",
+    "FX_RATE_UNAVAILABLE": "Unable to fetch the exchange rate right now. Please try again later."
   },
   "finance": {
     "TRANSACTION_NOT_FOUND": "Transaction with id {id} not found.",
@@ -98,10 +99,13 @@
     "FINANCIAL_SUMMARY_PERIOD_NOT_FOUND": "No financial summary found for period {periodId}.",
     "TAX_SUMMARY_NOT_FOUND": "No tax summary found for year {year}."
   },
+  "mail": {
+    "TEMPLATE_NOT_FOUND": "No default or custom email template exists with key \"{key}\". Check the identifier or create a new template with that key."
+  },
   "news": {
     "NOT_FOUND": "News item with id {id} not found.",
     "DUPLICATE": "A news item with that title already exists.",
-    "PROCESSING_ERROR": "Error processing the request."
+    "PROCESSING_ERROR": "Could not complete the operation on the news item due to an unexpected database error. Please try again later."
   },
   "notification": {
     "WS_INTERNAL_ERROR": "Internal WebSocket error.",
@@ -113,7 +117,7 @@
     "UPCOMING_INCOME": "Upcoming income",
     "UPCOMING_INVESTMENT": "Upcoming investment",
     "UPCOMING_SUBSCRIPTION": "Upcoming subscription",
-    "GENERIC_MOVEMENT": "your movement",
+    "GENERIC_MOVEMENT": "scheduled movement",
     "UPCOMING_DESCRIPTION": "Your {concept} of {amount} will be executed on {date}.",
     "PAYMENT_METHOD": "Payment method: {method}",
     "SOURCE_ENTITY": "Source entity: {source}",
@@ -122,14 +126,14 @@
     "IMPORT_COMPLETED_DESCRIPTION": "{created} transactions were registered across {files} file(s). Files with errors: {failed}. Uncategorized: {uncategorized}."
   },
   "shared": {
-    "UNEXPECTED_ERROR": "Unexpected error.",
+    "UNEXPECTED_ERROR": "An unexpected error occurred while processing the request. If the problem persists, please contact support.",
     "INVALID_INPUT": "Fields with validation errors: {fields}",
     "SUCCESS": "Operation successful",
     "CREATED": "Resource created successfully",
     "ACCEPTED": "Request accepted",
     "NO_CONTENT": "Operation completed with no content",
     "PARTIAL_CONTENT": "Partial content obtained",
-    "INTERNAL_ERROR": "Internal server error",
+    "INTERNAL_ERROR": "An internal server error occurred. Please try again later; if it persists, contact support.",
     "VALIDATION_ERRORS": "Validation errors",
     "UNAUTHORIZED": "Unauthorized",
     "FORBIDDEN": "Access forbidden",
@@ -164,6 +168,6 @@
     "BANKING_ENTITY_NOT_FOUND": "Banking entity with id {id} not found.",
     "BANKING_ENTITY_CODE_EXISTS": "A banking entity with that code already exists.",
     "SUPPORT_REQUEST_NOT_FOUND": "Support request with id {id} not found.",
-    "PROCESSING_ERROR": "Error processing the request."
+    "PROCESSING_ERROR": "Could not complete the operation on the support request due to an unexpected database error. Please try again later."
   }
 }

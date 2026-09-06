@@ -33,6 +33,7 @@ describe('HttpExceptionFilter', () => {
     };
 
     host = {
+      getType: () => 'http',
       switchToHttp: () => ({
         getResponse: () => response,
         getRequest: () => request,

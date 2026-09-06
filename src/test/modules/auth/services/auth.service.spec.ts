@@ -441,6 +441,16 @@ describe('AuthService', () => {
       expect(result.expires_in_seconds).toBeGreaterThan(0);
     });
 
+    it('debe incluir el locale del app_user para que UserLocaleResolver lo use', async () => {
+      mockUserRepository.findByUsername.mockResolvedValue({
+        id: '123',
+        locale: 'en-US',
+      });
+      mockHttpService.post.mockReturnValue(of(axiosResponse(activeTokenData)));
+      const result = await service.introspect('valid-token');
+      expect(result.locale).toBe('en-US');
+    });
+
     it('debe lanzar UnauthorizedException si active=false', async () => {
       mockHttpService.post.mockReturnValue(
         of(axiosResponse({ active: false })),

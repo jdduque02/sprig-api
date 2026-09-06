@@ -49,14 +49,26 @@ export class ErrorsInterceptor implements NestInterceptor {
     @Inject(I18nService) private readonly i18n: I18nService,
   ) {}
 
-  private getI18n(): I18nTranslator | undefined {
-    return I18nContext.current() ?? this.i18n;
+  private getI18n(context?: ExecutionContext): I18nTranslator | undefined {
+    return I18nContext.current(context) ?? this.i18n;
   }
 
-  private translate(key: string, args?: Record<string, unknown>): string {
-    const i18n = this.getI18n();
+  /**
+   * Traduce una clave i18n resolviendo el idioma real de la request
+   * (headers x-lang/Accept-Language o locale del usuario autenticado,
+   * ver UserLocaleResolver). Si no hay contexto de request disponible,
+   * i18n.t() cae al fallbackLanguage configurado ('es').
+   */
+  private translate(
+    key: string,
+    args?: Record<string, unknown>,
+    context?: ExecutionContext,
+  ): string {
+    const i18nContext = I18nContext.current(context);
+    const i18n = i18nContext ?? this.i18n;
     if (!i18n) return '';
-    const result: string = i18n.t(key, { lang: 'es', args });
+    const lang = i18nContext?.lang;
+    const result: string = i18n.t(key, lang ? { lang, args } : { args });
     return result !== key ? result : '';
   }
 
@@ -72,8 +84,8 @@ export class ErrorsInterceptor implements NestInterceptor {
         let status = HttpStatus.INTERNAL_SERVER_ERROR;
         let error = 'Internal Server Error';
         let message: string | object =
-          this.translate('shared.UNEXPECTED_SERVER')
-          ?? 'Ocurrió un error inesperado. Por favor, inténtelo de nuevo más tarde.';
+          this.translate('shared.UNEXPECTED_SERVER', undefined, context) ??
+          'Ocurrió un error inesperado. Por favor, inténtelo de nuevo más tarde.';
         let details: any[] = [];
         let stackTrace: string | undefined = undefined;
 
@@ -86,8 +98,8 @@ export class ErrorsInterceptor implements NestInterceptor {
           }));
           const fields = details.map((d) => d.property).join(', ');
           message =
-            this.translate('shared.INVALID_INPUT', { fields })
-            ?? `Campos con errores de validación: ${fields}`;
+            this.translate('shared.INVALID_INPUT', { fields }, context) ??
+            `Campos con errores de validación: ${fields}`;
         } else if (err instanceof HttpException) {
           status = err.getStatus();
           const responseData = err.getResponse();

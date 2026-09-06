@@ -40,7 +40,7 @@
     "USERNAME_NOT_FOUND": "Usuario con username \"{username}\" no encontrado.",
     "USER_NOT_DELETED": "El usuario con id {id} no está eliminado.",
     "USER_DUPLICATE": "Ya existe un usuario con ese email o username.",
-    "DB_ERROR": "Error inesperado en la base de datos.",
+    "DB_ERROR": "Ocurrió un error inesperado al consultar la información del usuario en la base de datos. Intenta de nuevo más tarde.",
     "OWNERSHIP_FAIL": "No se pudo verificar la identidad del solicitante.",
     "FORBIDDEN": "No tienes permiso para acceder a este recurso."
   },
@@ -51,16 +51,17 @@
   "catalog": {
     "CATEGORY_NOT_FOUND": "Categoría con id {id} no encontrada.",
     "CATEGORY_DUPLICATE": "Ya existe una categoría con ese nombre.",
-    "PROCESSING_ERROR": "Error al procesar la solicitud.",
+    "PROCESSING_ERROR": "No se pudo completar la operación sobre la categoría por un error inesperado en la base de datos. Intenta de nuevo más tarde.",
     "SUBCATEGORY_NOT_FOUND": "Subcategoría con id {id} no encontrada.",
     "SUBCATEGORY_DUPLICATE": "Ya existe una subcategoría con ese nombre en esta categoría."
   },
   "banking": {
     "BANK_ACCOUNT_NOT_FOUND": "Cuenta bancaria con id {id} no encontrada.",
     "BANK_ACCOUNT_DUPLICATE": "Ya existe una cuenta con esos datos.",
-    "PROCESSING_ERROR": "Error al procesar la solicitud.",
+    "PROCESSING_ERROR": "No se pudo completar la operación sobre la cuenta bancaria por un error inesperado en la base de datos. Intenta de nuevo más tarde.",
     "ASSET_NOT_FOUND": "Activo financiero con id {id} no encontrado.",
-    "LIABILITY_NOT_FOUND": "Pasivo financiero con id {id} no encontrado."
+    "LIABILITY_NOT_FOUND": "Pasivo financiero con id {id} no encontrado.",
+    "FX_RATE_UNAVAILABLE": "No fue posible obtener la tasa de cambio en este momento. Intenta de nuevo más tarde."
   },
   "finance": {
     "TRANSACTION_NOT_FOUND": "Transacción con id {id} no encontrada.",
@@ -98,10 +99,13 @@
     "FINANCIAL_SUMMARY_PERIOD_NOT_FOUND": "No se encontró resumen financiero para el período {periodId}.",
     "TAX_SUMMARY_NOT_FOUND": "No se encontró resumen fiscal para el año {year}."
   },
+  "mail": {
+    "TEMPLATE_NOT_FOUND": "No existe una plantilla de correo predeterminada ni personalizada con la clave \"{key}\". Verifica el identificador o crea una nueva plantilla con esa clave."
+  },
   "news": {
     "NOT_FOUND": "Noticia con id {id} no encontrada.",
     "DUPLICATE": "Ya existe una noticia con ese título.",
-    "PROCESSING_ERROR": "Error al procesar la solicitud."
+    "PROCESSING_ERROR": "No se pudo completar la operación sobre la noticia por un error inesperado en la base de datos. Intenta de nuevo más tarde."
   },
   "notification": {
     "WS_INTERNAL_ERROR": "Error interno del WebSocket.",
@@ -113,7 +117,7 @@
     "UPCOMING_INCOME": "Ingreso próximo",
     "UPCOMING_INVESTMENT": "Inversión próxima",
     "UPCOMING_SUBSCRIPTION": "Suscripción próxima",
-    "GENERIC_MOVEMENT": "tu movimiento",
+    "GENERIC_MOVEMENT": "movimiento programado",
     "UPCOMING_DESCRIPTION": "Tu {concept} de {amount} se efectuará el {date}.",
     "PAYMENT_METHOD": "Método de pago: {method}",
     "SOURCE_ENTITY": "Entidad de origen: {source}",
@@ -122,14 +126,14 @@
     "IMPORT_COMPLETED_DESCRIPTION": "Se registraron {created} transacciones en {files} archivo(s). Archivos con error: {failed}. Sin categoría: {uncategorized}."
   },
   "shared": {
-    "UNEXPECTED_ERROR": "Error inesperado.",
+    "UNEXPECTED_ERROR": "Ocurrió un error inesperado al procesar la solicitud. Si el problema persiste, contacta a soporte.",
     "INVALID_INPUT": "Campos con errores de validación: {fields}",
     "SUCCESS": "Operación exitosa",
     "CREATED": "Recurso creado exitosamente",
     "ACCEPTED": "Solicitud aceptada",
     "NO_CONTENT": "Operación completada sin contenido",
     "PARTIAL_CONTENT": "Contenido parcial obtenido",
-    "INTERNAL_ERROR": "Error interno del servidor",
+    "INTERNAL_ERROR": "Ocurrió un error interno del servidor. Intenta de nuevo más tarde; si persiste, contacta a soporte.",
     "VALIDATION_ERRORS": "Errores de validación",
     "UNAUTHORIZED": "No autorizado",
     "FORBIDDEN": "Acceso prohibido",
@@ -164,6 +168,6 @@
     "BANKING_ENTITY_NOT_FOUND": "Entidad bancaria con id {id} no encontrada.",
     "BANKING_ENTITY_CODE_EXISTS": "Ya existe una entidad bancaria con ese código.",
     "SUPPORT_REQUEST_NOT_FOUND": "Solicitud de soporte con id {id} no encontrada.",
-    "PROCESSING_ERROR": "Error al procesar la solicitud."
+    "PROCESSING_ERROR": "No se pudo completar la operación sobre la solicitud de soporte por un error inesperado en la base de datos. Intenta de nuevo más tarde."
   }
 }

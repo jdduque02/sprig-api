@@ -24,6 +24,7 @@ describe('ErrorsInterceptor', () => {
 
   const buildContext = (path = '/api/test'): ExecutionContext =>
     ({
+      getType: () => 'http',
       switchToHttp: () => ({
         getRequest: () => ({ originalUrl: path }),
       }),

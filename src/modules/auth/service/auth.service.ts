@@ -517,6 +517,7 @@ export class AuthService {
         : undefined,
       expires_in_seconds: expiresInSeconds,
       userId: Number.parseInt(user.id, 10),
+      locale: user.locale,
     };
   }
 
