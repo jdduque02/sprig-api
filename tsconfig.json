@@ -23,7 +23,6 @@
       "@finance/*": ["./src/modules/finance/*"],
       "@audit/*": ["./src/modules/audit/*"],
       "@config/*": ["./src/config/*"],
-      "@common/*": ["./src/common/*"],
       "@shared/*": ["./src/shared/*"],
       "@notification/*": ["./src/modules/notification/*"],
       "@intelligence/*": ["./src/modules/intelligence/*"],
