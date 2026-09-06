@@ -9,7 +9,16 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
 export class CreateObjectivePaymentDto {
-  @ApiProperty({ description: 'ID del objetivo financiero.', example: 1 })
+  @ApiPropertyOptional({
+    description:
+      'ID del objetivo financiero. No es necesario enviarlo: el controller lo toma del parámetro de ruta `:objectiveId` y lo sobreescribe.',
+    example: 1,
+  })
+  // El cliente no necesita enviarlo (el controller lo toma de `:objectiveId`
+  // y lo sobreescribe antes de llegar al service/repository, que sí asumen
+  // que siempre está presente) — `@IsOptional()` evita rechazar la request
+  // si falta, sin volver opcional el tipo aguas abajo.
+  @IsOptional()
   @Type(() => Number)
   @IsNumber()
   @Min(1)
