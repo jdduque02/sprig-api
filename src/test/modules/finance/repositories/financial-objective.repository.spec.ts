@@ -4,9 +4,9 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { IsNull } from 'typeorm';
 import { I18nService } from 'nestjs-i18n';
 import { EncryptionService } from '@shared/services/encryption.service';
+import { BankAccountService } from '@banking/service/bank-account.service';
 import { FinancialObjectiveRepository } from '@finance/repositories/financial-objective.repository';
 import { FinancialObjective } from '@finance/entities/financial-objective.entity';
-import { BankAccount } from '@banking/entities/bank-account.entity';
 import { CreateFinancialObjectiveDto } from '@finance/dto/financial-objective/create-financial-objective.dto';
 import { UpdateFinancialObjectiveDto } from '@finance/dto/financial-objective/update-financial-objective.dto';
 import { FinancialObjectiveTypeEnum } from '@shared/enums';
@@ -20,8 +20,8 @@ const mockTypeOrmRepo = {
   softRemove: jest.fn(),
 };
 
-const mockBankAccountRepo = {
-  findOne: jest.fn(),
+const mockBankAccountService = {
+  findOptional: jest.fn(),
 };
 
 const mockI18nService = {
@@ -59,8 +59,8 @@ describe('FinancialObjectiveRepository', () => {
           useValue: mockTypeOrmRepo,
         },
         {
-          provide: getRepositoryToken(BankAccount),
-          useValue: mockBankAccountRepo,
+          provide: BankAccountService,
+          useValue: mockBankAccountService,
         },
         { provide: I18nService, useValue: mockI18nService },
         { provide: EncryptionService, useValue: mockEncryptionService },
@@ -154,7 +154,7 @@ describe('FinancialObjectiveRepository', () => {
         type: FinancialObjectiveTypeEnum.SAVINGS,
         account_id: 5,
       };
-      mockBankAccountRepo.findOne.mockResolvedValue({
+      mockBankAccountService.findOptional.mockResolvedValue({
         id: 5,
         bank_name: 'Davivienda',
         annual_interest_rate: 4.5,
@@ -168,9 +168,7 @@ describe('FinancialObjectiveRepository', () => {
 
       const result = await repo.create(10, dto);
 
-      expect(mockBankAccountRepo.findOne).toHaveBeenCalledWith({
-        where: { id: 5, user_id: 10, deleted_at: IsNull() },
-      });
+      expect(mockBankAccountService.findOptional).toHaveBeenCalledWith(5, 10);
       expect(mockTypeOrmRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({
           bank: 'Davivienda',
@@ -189,7 +187,7 @@ describe('FinancialObjectiveRepository', () => {
         bank: 'Mi banco',
         current_profitability: 7,
       };
-      mockBankAccountRepo.findOne.mockResolvedValue({
+      mockBankAccountService.findOptional.mockResolvedValue({
         id: 5,
         bank_name: 'Davivienda',
         annual_interest_rate: 4.5,
@@ -219,7 +217,7 @@ describe('FinancialObjectiveRepository', () => {
         type: FinancialObjectiveTypeEnum.SAVINGS,
         account_id: 999,
       };
-      mockBankAccountRepo.findOne.mockResolvedValue(null);
+      mockBankAccountService.findOptional.mockResolvedValue(null);
       mockTypeOrmRepo.create.mockReturnValue(buildObjective());
       mockTypeOrmRepo.save.mockResolvedValue(buildObjective());
 
@@ -378,7 +376,7 @@ describe('FinancialObjectiveRepository', () => {
   // ─────────────────────────────────────────────────────────────
   describe('resolveAccountForQuota', () => {
     it('debe devolver banco y tasa anual de la cuenta', async () => {
-      mockBankAccountRepo.findOne.mockResolvedValue({
+      mockBankAccountService.findOptional.mockResolvedValue({
         id: 3,
         bank_name: 'Bancolombia',
         annual_interest_rate: 4.5,
@@ -386,9 +384,7 @@ describe('FinancialObjectiveRepository', () => {
 
       const result = await repo.resolveAccountForQuota(10, 3);
 
-      expect(mockBankAccountRepo.findOne).toHaveBeenCalledWith({
-        where: { id: 3, user_id: 10, deleted_at: IsNull() },
-      });
+      expect(mockBankAccountService.findOptional).toHaveBeenCalledWith(3, 10);
       expect(result).toEqual({
         bank: 'Bancolombia',
         annual_interest_rate: 4.5,
@@ -396,7 +392,7 @@ describe('FinancialObjectiveRepository', () => {
     });
 
     it('debe devolver null si la cuenta no existe', async () => {
-      mockBankAccountRepo.findOne.mockResolvedValue(null);
+      mockBankAccountService.findOptional.mockResolvedValue(null);
 
       const result = await repo.resolveAccountForQuota(10, 999);
 
@@ -404,7 +400,7 @@ describe('FinancialObjectiveRepository', () => {
     });
 
     it('debe tolerar cuenta sin banco ni tasa', async () => {
-      mockBankAccountRepo.findOne.mockResolvedValue({
+      mockBankAccountService.findOptional.mockResolvedValue({
         id: 3,
         bank_name: null,
         annual_interest_rate: null,

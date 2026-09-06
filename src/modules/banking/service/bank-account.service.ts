@@ -87,6 +87,16 @@ export class BankAccountService {
     return this.toResponseDto(entity);
   }
 
+  /**
+   * Variante para consumo entre módulos: no lanza si la cuenta no existe o
+   * no pertenece al usuario. Devuelve la entidad cruda (sin descifrar) para
+   * que otros módulos (p. ej. `finance`) puedan enlazar opcionalmente a una
+   * cuenta bancaria sin inyectar `Repository<BankAccount>` directamente.
+   */
+  async findOptional(id: number, userId: number): Promise<BankAccount | null> {
+    return this.bankAccountRepository.findByIdOrNull(id, userId);
+  }
+
   async update(
     id: number,
     userId: number,

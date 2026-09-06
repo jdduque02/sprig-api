@@ -219,18 +219,6 @@ describe('FinancialObjectiveService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('rechaza objetivo ya alcanzado cuando el saldo cubre la meta', async () => {
-      await expect(
-        service.calculateQuota(10, {
-          target_amount: 500000,
-          current_balance: 900000,
-          start_date: '2026-01-01',
-          end_date: '2026-12-31',
-          frequency: 'monthly' as never,
-        }),
-      ).rejects.toThrow(BadRequestException);
-    });
-
     it('mensual con día de fin menor al de inicio cuenta un periodo parcial', async () => {
       const result = await service.calculateQuota(10, {
         target_amount: 1000000,

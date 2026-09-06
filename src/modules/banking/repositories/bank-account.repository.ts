@@ -66,10 +66,17 @@ export class BankAccountRepository {
     });
   }
 
-  async findById(id: number, userId: number): Promise<BankAccount> {
-    const account = await this.repo.findOne({
+  async findByIdOrNull(
+    id: number,
+    userId: number,
+  ): Promise<BankAccount | null> {
+    return this.repo.findOne({
       where: { id, user_id: userId, deleted_at: IsNull() },
     });
+  }
+
+  async findById(id: number, userId: number): Promise<BankAccount> {
+    const account = await this.findByIdOrNull(id, userId);
     if (!account)
       throw new NotFoundException(
         this.i18n.t('banking.BANK_ACCOUNT_NOT_FOUND', { args: { id } }),
