@@ -43,6 +43,7 @@
     "@nestjs/websockets": "^11.2.3",
     "@react-email/components": "^1.0.12",
     "@react-email/render": "^2.1.0",
+    "@react-pdf/renderer": "^4.9.0",
     "amqp-connection-manager": "^5.0.0",
     "amqplib": "^1.2.0",
     "axios": "^1.20.0",

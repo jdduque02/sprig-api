@@ -1,10 +1,39 @@
+// NestJS necesita importar la clase real (emitDecoratorMetadata) para el DI,
+// aunque el test la mockee después — @react-pdf/renderer es ESM-only y Jest
+// no puede cargarlo (ver financial-profile-report.service.spec.ts), así que
+// se mockea aquí también solo para que la carga del módulo no falle.
+jest.mock('@react-pdf/renderer', () => ({
+  renderToBuffer: jest.fn(),
+  Document: 'Document',
+  Page: 'Page',
+  View: 'View',
+  Text: 'Text',
+  StyleSheet: { create: (styles: unknown) => styles },
+}));
+
+import { BadRequestException } from '@nestjs/common';
 import { IntelligenceController } from '@intelligence/controller/intelligence.controller';
 import { IntelligenceService } from '@intelligence/service/intelligence.service';
+import { FinancialAiAnalysisService } from '@intelligence/service/financial-ai-analysis.service';
+import { FinancialProfileReportService } from '@intelligence/service/financial-profile-report.service';
 
 const mockService = {
   findFinancialSummary: jest.fn(),
   findFinancialSummaryByPeriod: jest.fn(),
   findTaxSummary: jest.fn(),
+};
+
+const mockAiAnalysisService = {
+  analyze: jest.fn(),
+};
+
+const mockReportService = {
+  generate: jest.fn(),
+};
+
+const mockRes = {
+  setHeader: jest.fn(),
+  send: jest.fn(),
 };
 
 const currentUser = { sub: 'kc-uuid', userId: 10 };
@@ -15,6 +44,8 @@ describe('IntelligenceController', () => {
   beforeEach(() => {
     controller = new IntelligenceController(
       mockService as unknown as IntelligenceService,
+      mockAiAnalysisService as unknown as FinancialAiAnalysisService,
+      mockReportService as unknown as FinancialProfileReportService,
     );
     jest.clearAllMocks();
   });
@@ -53,5 +84,76 @@ describe('IntelligenceController', () => {
     mockService.findTaxSummary.mockResolvedValue({ id: 1 });
     await controller.getTaxSummary(10, currentUser as never, '2024');
     expect(mockService.findTaxSummary).toHaveBeenCalledWith(10, 2024);
+  });
+
+  it('obtiene análisis de IA sin periodId', async () => {
+    const analysis = { id: 1, narrative: 'texto', provider: 'rule-based' };
+    mockAiAnalysisService.analyze.mockResolvedValue(analysis);
+
+    await expect(
+      controller.getAiAnalysis(10, currentUser as never),
+    ).resolves.toEqual(analysis);
+    expect(mockAiAnalysisService.analyze).toHaveBeenCalledWith(10, {
+      periodId: undefined,
+    });
+  });
+
+  it('obtiene análisis de IA con periodId', async () => {
+    mockAiAnalysisService.analyze.mockResolvedValue({ id: 1 });
+
+    await controller.getAiAnalysis(10, currentUser as never, '9');
+
+    expect(mockAiAnalysisService.analyze).toHaveBeenCalledWith(10, {
+      periodId: 9,
+    });
+  });
+
+  it('rechaza un periodId no numérico con BadRequestException', async () => {
+    await expect(
+      controller.getAiAnalysis(10, currentUser as never, 'abc'),
+    ).rejects.toThrow(BadRequestException);
+    expect(mockAiAnalysisService.analyze).not.toHaveBeenCalled();
+  });
+
+  it('descarga el reporte PDF con los headers correctos', async () => {
+    const buffer = Buffer.from('%PDF-1.7 fake');
+    mockReportService.generate.mockResolvedValue(buffer);
+
+    await controller.getReport(
+      10,
+      currentUser as never,
+      undefined,
+      mockRes as never,
+    );
+
+    expect(mockReportService.generate).toHaveBeenCalledWith(10, {
+      periodId: undefined,
+    });
+    expect(mockRes.setHeader).toHaveBeenCalledWith(
+      'Content-Type',
+      'application/pdf',
+    );
+    expect(mockRes.setHeader).toHaveBeenCalledWith(
+      'Content-Disposition',
+      'attachment; filename="reporte-financiero-10.pdf"',
+    );
+    expect(mockRes.send).toHaveBeenCalledWith(buffer);
+  });
+
+  it('descarga el reporte PDF de un período específico', async () => {
+    mockReportService.generate.mockResolvedValue(Buffer.from('%PDF'));
+
+    await controller.getReport(10, currentUser as never, '9', mockRes as never);
+
+    expect(mockReportService.generate).toHaveBeenCalledWith(10, {
+      periodId: 9,
+    });
+  });
+
+  it('rechaza un periodId no numérico en el reporte con BadRequestException', async () => {
+    await expect(
+      controller.getReport(10, currentUser as never, 'abc', mockRes as never),
+    ).rejects.toThrow(BadRequestException);
+    expect(mockReportService.generate).not.toHaveBeenCalled();
   });
 });

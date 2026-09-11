@@ -46,7 +46,7 @@ src/
 │   ├── catalog/                     # Categorías y subcategorías
 │   ├── finance/                     # Transacciones, objetivos, períodos, extractos
 │   ├── identity/                    # Usuarios, admin users, perfiles
-│   ├── intelligence/                # Resúmenes financieros (entidades)
+│   ├── intelligence/                # Resúmenes financieros + análisis con IA (rule-based)
 │   ├── mail/                        # Plantillas + broadcast admin
 │   ├── news/                        # Noticias (CRUD admin / lectura auth)
 │   ├── notification/                # WebSocket
@@ -175,6 +175,23 @@ Detalles del flujo:
 - `GET /users/:userId/financial-periods`
 - `GET /users/:userId/financial-periods/:id`
 - `PATCH /users/:userId/financial-periods/:id/close`
+
+### Inteligencia (resúmenes financieros + análisis con IA)
+
+- `GET /users/:userId/intelligence/financial-summary` — resumen financiero más reciente del usuario.
+- `GET /users/:userId/intelligence/financial-summary/period/:periodId` — resumen de un período específico.
+- `GET /users/:userId/intelligence/tax-summary` — resumen fiscal DIAN por año.
+- `GET /users/:userId/intelligence/ai-analysis` — análisis financiero on-demand: calcula (o reutiliza si ya es `is_final`) el resumen del período contra `identity.financial_profile` y genera una narrativa + recomendaciones.
+- `GET /users/:userId/intelligence/report` — descarga un **PDF** (`Content-Type: application/pdf`, `Content-Disposition: attachment`) con el resumen del perfil financiero: perfil + ratios, resumen del período (reutiliza `ai-analysis`), insights/narrativa, patrimonio (cuentas/activos/pasivos), metas activas, gasto por categoría del período, **consolidado de los últimos 12 meses por categoría** (con una recomendación heurística de cuáles evaluar reducir) y **el detalle de los movimientos de los últimos 30 días**.
+
+Detalles del flujo:
+
+- `FinancialSummaryCalculatorService` es el productor real de `intelligence.financial_summary` (antes solo existían las entidades, sin nada que las calculara): agrega ingresos/gastos (`TransactionRecordService`), patrimonio neto (cuentas, activos y pasivos de `banking`) y objetivos activos (`finance`), y calcula `expense_ratio` / `debt_ratio` / `savings_rate` contra los ratios personalizables del perfil financiero del usuario (`needs_ratio`, `wants_ratio`, `savings_ratio`, `max_debt_ratio` — no hardcodeados). Genera `insights` (`overspending`, `over_indebted`, `low_savings`, `objective_at_risk`). Respeta el invariante `is_final = true` de la entidad: nunca recalcula un resumen ya cerrado (lanza `ConflictException`).
+- La narrativa es generada por `RuleBasedFinancialNarrativeProvider`, una implementación determinística (sin SDK ni llamadas de red) detrás de la interfaz `FinancialNarrativeProvider` (token `FINANCIAL_NARRATIVE_PROVIDER`). Es un punto de extensión intencional: cuando haya una API key de un proveedor de IA real, se agrega una clase nueva que implemente la misma interfaz y se registra en `intelligence.module.ts`, sin tocar el controller, el DTO ni el calculador. Hoy la respuesta siempre indica `"provider": "rule-based"`.
+- `financial-period.service.ts` gana `findOrCreateCurrent(userId)` para resolver (o crear) el período del mes actual en la zona horaria del usuario, usado como período por defecto del análisis on-demand.
+- Migración: `migrations/20260907-create-financial-summary-table.sql` (tabla ya definida también en `schema.sql`).
+- El PDF se genera con `@react-pdf/renderer` (JSX → PDF nativo, sin navegador headless — mismo estilo declarativo que `@react-email/render` en `mail`), orquestado por `FinancialProfileReportService` y renderizado por la plantilla `financial-profile-report.template.tsx`. La recomendación de "categorías a revisar" es un heurístico: marca categorías de gasto discrecional (`catalog.category.profile_bucket = wants`, o sin clasificar) que concentran ≥10% del gasto anual; las categorías `needs`/`savings`/`investment`/`debt` no se marcan aunque su gasto sea alto.
+- `@react-pdf/renderer` (y su árbol de dependencias) se distribuye solo como ESM; Jest no puede cargarlo aunque Node sí (vía `require(esm)` nativo desde Node 22+), así que los tests lo mockean por completo y la verificación del render real se hace manualmente contra el servidor.
 
 ### Noticias
 
@@ -335,7 +352,7 @@ Credenciales Jenkins esperadas: `dockerhub-creds`, `vercel-token`, `vercel-org-i
 ## Observaciones
 
 - Swagger tags: `auth`, `users`, `admin / users`, `admin / emails`, `financial-profile`, `banking`, `catalog`, `finance`, `audit`, `news`, `mail`, `support`.
-- El módulo `intelligence` contiene entidades de resumen y está pendiente de servicios/controladores.
+- El módulo `intelligence` ya calcula `financial_summary` (`FinancialSummaryCalculatorService`) y expone análisis con IA on-demand (`GET .../intelligence/ai-analysis`); la narrativa es determinística (`rule-based`) hasta que se configure un proveedor de IA real. `tax_summary` y `summary_category_breakdown` siguen sin productor.
 - Plantilla OTP: `src/modules/mail/templates/otp-password-reset.tsx`; plantillas custom y broadcasts en `mail.email_template`.
 - Roles Keycloak: ver [`docs/keycloak-roles.md`](docs/keycloak-roles.md).
 - Brand / logo / naming: ver [`docs/service-description.md`](docs/service-description.md).
