@@ -16,6 +16,7 @@ import { IntelligenceController } from '@intelligence/controller/intelligence.co
 import { IntelligenceService } from '@intelligence/service/intelligence.service';
 import { FinancialAiAnalysisService } from '@intelligence/service/financial-ai-analysis.service';
 import { FinancialProfileReportService } from '@intelligence/service/financial-profile-report.service';
+import { TaxSummaryCalculatorService } from '@intelligence/service/tax-summary-calculator.service';
 
 const mockService = {
   findFinancialSummary: jest.fn(),
@@ -29,6 +30,11 @@ const mockAiAnalysisService = {
 
 const mockReportService = {
   generate: jest.fn(),
+};
+
+const mockTaxCalculatorService = {
+  calculateAndPersist: jest.fn(),
+  update: jest.fn(),
 };
 
 const mockRes = {
@@ -46,6 +52,7 @@ describe('IntelligenceController', () => {
       mockService as unknown as IntelligenceService,
       mockAiAnalysisService as unknown as FinancialAiAnalysisService,
       mockReportService as unknown as FinancialProfileReportService,
+      mockTaxCalculatorService as unknown as TaxSummaryCalculatorService,
     );
     jest.clearAllMocks();
   });
@@ -84,6 +91,17 @@ describe('IntelligenceController', () => {
     mockService.findTaxSummary.mockResolvedValue({ id: 1 });
     await controller.getTaxSummary(10, currentUser as never, '2024');
     expect(mockService.findTaxSummary).toHaveBeenCalledWith(10, 2024);
+  });
+
+  it('edita un resumen fiscal existente', async () => {
+    const updated = { id: 1, user_id: 10, total_income: 80000000 };
+    mockTaxCalculatorService.update.mockResolvedValue(updated);
+
+    const dto = { total_income: 80000000 };
+    await expect(
+      controller.updateTaxSummary(10, 1, dto as never, currentUser as never),
+    ).resolves.toEqual(updated);
+    expect(mockTaxCalculatorService.update).toHaveBeenCalledWith(10, 1, dto);
   });
 
   it('obtiene análisis de IA sin periodId', async () => {

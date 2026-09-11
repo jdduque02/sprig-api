@@ -10,6 +10,7 @@ import { SummaryCategoryBreakdown } from '@intelligence/entities/summary-categor
 import { TaxSummary } from '@intelligence/entities/tax-summary.entity';
 import { IntelligenceService } from '@intelligence/service/intelligence.service';
 import { FinancialSummaryCalculatorService } from '@intelligence/service/financial-summary-calculator.service';
+import { TaxSummaryCalculatorService } from '@intelligence/service/tax-summary-calculator.service';
 import {
   FINANCIAL_NARRATIVE_PROVIDER,
   FinancialAiAnalysisService,
@@ -35,6 +36,7 @@ import { IntelligenceController } from '@intelligence/controller/intelligence.co
   providers: [
     IntelligenceService,
     FinancialSummaryCalculatorService,
+    TaxSummaryCalculatorService,
     FinancialAiAnalysisService,
     FinancialProfileReportService,
     {

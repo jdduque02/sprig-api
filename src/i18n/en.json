@@ -98,6 +98,8 @@
     "FINANCIAL_SUMMARY_NOT_FOUND": "No financial summary found for user {userId}.",
     "FINANCIAL_SUMMARY_PERIOD_NOT_FOUND": "No financial summary found for period {periodId}.",
     "TAX_SUMMARY_NOT_FOUND": "No tax summary found for year {year}.",
+    "TAX_SUMMARY_ID_NOT_FOUND": "No tax summary found with id {id}.",
+    "TAX_SUMMARY_ALREADY_EXISTS": "A tax summary already exists for year {year}. Cannot create another.",
     "FINANCIAL_SUMMARY_ALREADY_FINAL": "The financial summary for period {periodId} is already final and cannot be recalculated.",
     "FINANCIAL_PROFILE_REQUIRED": "You must create your financial profile before generating the analysis (POST user/{userId}/financial-profile)."
   },
