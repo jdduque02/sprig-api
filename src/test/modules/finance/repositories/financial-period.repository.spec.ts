@@ -148,4 +148,88 @@ describe('FinancialPeriodRepository', () => {
       await expect(repo.close(999, 10)).rejects.toThrow(NotFoundException);
     });
   });
+
+  // ─────────────────────────────────────────────────────────────
+  // findByYearMonth
+  // ─────────────────────────────────────────────────────────────
+  describe('findByYearMonth', () => {
+    it('debe retornar el período si existe', async () => {
+      const period = buildPeriod();
+      mockTypeOrmRepo.findOne.mockResolvedValue(period);
+
+      const result = await repo.findByYearMonth(10, 2024, 1);
+
+      expect(mockTypeOrmRepo.findOne).toHaveBeenCalledWith({
+        where: { user_id: 10, year: 2024, month: 1 },
+      });
+      expect(result).toEqual(period);
+    });
+
+    it('debe retornar null si no existe', async () => {
+      mockTypeOrmRepo.findOne.mockResolvedValue(null);
+
+      const result = await repo.findByYearMonth(10, 2024, 1);
+
+      expect(result).toBeNull();
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // findOrCreateCurrent
+  // ─────────────────────────────────────────────────────────────
+  describe('findOrCreateCurrent', () => {
+    it('debe retornar el período existente sin crear uno nuevo', async () => {
+      const period = buildPeriod();
+      mockTypeOrmRepo.findOne.mockResolvedValue(period);
+
+      const result = await repo.findOrCreateCurrent(10, 2024, 1);
+
+      expect(result).toEqual(period);
+      expect(mockTypeOrmRepo.create).not.toHaveBeenCalled();
+    });
+
+    it('debe crear el período si no existe', async () => {
+      const created = buildPeriod();
+      mockTypeOrmRepo.findOne.mockResolvedValue(null);
+      mockTypeOrmRepo.create.mockReturnValue(created);
+      mockTypeOrmRepo.save.mockResolvedValue(created);
+
+      const result = await repo.findOrCreateCurrent(10, 2024, 1);
+
+      expect(mockTypeOrmRepo.create).toHaveBeenCalledWith({
+        year: 2024,
+        month: 1,
+        user_id: 10,
+      });
+      expect(result).toEqual(created);
+    });
+
+    it('re-consulta y retorna el período ganador si create() falla por una carrera concurrente', async () => {
+      const raceWinner = buildPeriod();
+      mockTypeOrmRepo.findOne
+        .mockResolvedValueOnce(null) // findByYearMonth inicial: no existe
+        .mockResolvedValueOnce(null) // dentro de create(): tampoco existe aún
+        .mockResolvedValueOnce(raceWinner); // re-consulta tras el fallo: ya existe
+      mockTypeOrmRepo.create.mockReturnValue({});
+      mockTypeOrmRepo.save.mockRejectedValue(new Error('duplicate key value'));
+
+      const result = await repo.findOrCreateCurrent(10, 2024, 1);
+
+      expect(result).toEqual(raceWinner);
+    });
+
+    it('propaga el error original si tras el fallo tampoco existe el período', async () => {
+      const dbError = new Error('duplicate key value');
+      mockTypeOrmRepo.findOne
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null);
+      mockTypeOrmRepo.create.mockReturnValue({});
+      mockTypeOrmRepo.save.mockRejectedValue(dbError);
+
+      await expect(repo.findOrCreateCurrent(10, 2024, 1)).rejects.toThrow(
+        dbError,
+      );
+    });
+  });
 });

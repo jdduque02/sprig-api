@@ -97,7 +97,9 @@
   "intelligence": {
     "FINANCIAL_SUMMARY_NOT_FOUND": "No se encontró resumen financiero para el usuario {userId}.",
     "FINANCIAL_SUMMARY_PERIOD_NOT_FOUND": "No se encontró resumen financiero para el período {periodId}.",
-    "TAX_SUMMARY_NOT_FOUND": "No se encontró resumen fiscal para el año {year}."
+    "TAX_SUMMARY_NOT_FOUND": "No se encontró resumen fiscal para el año {year}.",
+    "FINANCIAL_SUMMARY_ALREADY_FINAL": "El resumen financiero del período {periodId} ya está cerrado (is_final) y no puede recalcularse.",
+    "FINANCIAL_PROFILE_REQUIRED": "Debes crear tu perfil financiero antes de generar el análisis (POST user/{userId}/financial-profile)."
   },
   "mail": {
     "TEMPLATE_NOT_FOUND": "No existe una plantilla de correo predeterminada ni personalizada con la clave \"{key}\". Verifica el identificador o crea una nueva plantilla con esa clave."
