@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  # Broker de Mensajeria (RabbitMQ)
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: cost_manager_rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:?RABBITMQ_USER no definido}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD no definido}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    restart: unless-stopped
+
+  # Servidor de Caché (Redis)
+  redis:
+    image: redis:7-alpine
+    container_name: cost_manager_redis
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?REDIS_PASSWORD no definido}"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  # Base de Datos (PostgreSQL)
+  postgres:
+    image: postgres:16-alpine
+    container_name: cost_manager_postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ${DB_NAME:-cost_manager}
+      POSTGRES_USER: ${DB_USER:?DB_USER no definido}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD no definido}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+
+  # Proveedor de Identidad (Keycloak)
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.1.2 # Última versión estable recomendada
+    container_name: cost_manager_keycloak
+    depends_on:
+      - postgres
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-cost_manager}
+      KC_DB_USERNAME: ${DB_USER:?DB_USER no definido}
+      KC_DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD no definido}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:?KEYCLOAK_ADMIN no definido}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?KEYCLOAK_ADMIN_PASSWORD no definido}
+    command: start-dev # Inicia keycloak en modo desarrollo
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+  # Code Quality (SonarQube)
+  sonarqube:
+    image: sonarqube:lts-community
+    container_name: cost_manager_sonarqube
+    ports:
+      - "9000:9000"
+    environment:
+      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
+    volumes:
+      - sonar_data:/opt/sonarqube/data
+      - sonar_extensions:/opt/sonarqube/extensions
+      - sonar_logs:/opt/sonarqube/logs
+    restart: unless-stopped
+
+volumes:
+  rabbitmq_data:
+  redis_data:
+  postgres_data:
+  sonar_data:
+  sonar_extensions:
+  sonar_logs:

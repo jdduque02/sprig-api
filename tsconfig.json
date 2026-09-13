@@ -1,0 +1,42 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2023",
+    "jsx": "react-jsx",
+    "sourceMap": true,
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@identity/*": ["./src/modules/identity/*"],
+      "@catalog/*": ["./src/modules/catalog/*"],
+      "@auth/*": ["./src/modules/auth/*"],
+      "@banking/*": ["./src/modules/banking/*"],
+      "@finance/*": ["./src/modules/finance/*"],
+      "@audit/*": ["./src/modules/audit/*"],
+      "@config/*": ["./src/config/*"],
+      "@shared/*": ["./src/shared/*"],
+      "@notification/*": ["./src/modules/notification/*"],
+      "@intelligence/*": ["./src/modules/intelligence/*"],
+      "@news/*": ["./src/modules/news/*"],
+      "@mail/*": ["./src/modules/mail/*"],
+      "@support/*": ["./src/modules/support/*"],
+      "@admin/*": ["./src/modules/admin/*"]
+    },
+    "incremental": true,
+    "skipLibCheck": true,
+    "strictNullChecks": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitAny": false,
+    "strictBindCallApply": false,
+    "noFallthroughCasesInSwitch": false
+  }
+}
