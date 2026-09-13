@@ -19,6 +19,7 @@ import { StatementImportFile } from './entities/statement-import-file.entity';
 import { TransactionCategoryRule } from './entities/transaction-category-rule.entity';
 import { FinancialAsset } from '@banking/entities/financial-asset.entity';
 import { FinancialLiability } from '@banking/entities/financial-liability.entity';
+import { CategoryBudget } from './entities/category-budget.entity';
 import { FinancialObjectiveController } from './controller/financial-objective.controller';
 import { FinancialPeriodController } from './controller/financial-period.controller';
 import { TransactionRecordController } from './controller/transaction-record.controller';
@@ -27,6 +28,8 @@ import { StatementImportController } from './controller/statement-import.control
 import { TransferController } from './controller/transfer.controller';
 import { CashArqueoController } from './controller/cash-arqueo.controller';
 import { EmpresaController } from './controller/empresa.controller';
+import { GmfController } from './controller/gmf.controller';
+import { CategoryBudgetController } from './controller/category-budget.controller';
 import { FinancialObjectiveService } from './service/financial-objective.service';
 import { FinancialPeriodService } from './service/financial-period.service';
 import { TransactionRecordService } from './service/transaction-record.service';
@@ -36,6 +39,9 @@ import { TransferService } from './service/transfer.service';
 import { CashArqueoService } from './service/cash-arqueo.service';
 import { EmpresaService } from './service/empresa.service';
 import { FixedReminderScheduler } from './service/fixed-reminder.scheduler';
+import { GmfService } from './service/gmf.service';
+import { CategoryBudgetService } from './service/category-budget.service';
+import { CategoryBudgetScheduler } from './service/category-budget.scheduler';
 import { FinancialObjectiveRepository } from './repositories/financial-objective.repository';
 import { FinancialPeriodRepository } from './repositories/financial-period.repository';
 import { TransactionRecordRepository } from './repositories/transaction-record.repository';
@@ -43,6 +49,7 @@ import { ObjectivePaymentRepository } from './repositories/objective-payment.rep
 import { StatementImportRepository } from './repositories/statement-import.repository';
 import { CashArqueoRepository } from './repositories/cash-arqueo.repository';
 import { EmpresaRepository } from './repositories/empresa.repository';
+import { CategoryBudgetRepository } from './repositories/category-budget.repository';
 
 @Module({
   imports: [
@@ -59,6 +66,7 @@ import { EmpresaRepository } from './repositories/empresa.repository';
       TransactionCategoryRule,
       FinancialAsset,
       FinancialLiability,
+      CategoryBudget,
     ]),
     AuthModule,
     forwardRef(() => IdentityModule),
@@ -77,6 +85,8 @@ import { EmpresaRepository } from './repositories/empresa.repository';
     TransferController,
     CashArqueoController,
     EmpresaController,
+    GmfController,
+    CategoryBudgetController,
   ],
   providers: [
     FinancialObjectiveService,
@@ -88,6 +98,9 @@ import { EmpresaRepository } from './repositories/empresa.repository';
     CashArqueoService,
     EmpresaService,
     FixedReminderScheduler,
+    GmfService,
+    CategoryBudgetService,
+    CategoryBudgetScheduler,
     FinancialObjectiveRepository,
     FinancialPeriodRepository,
     TransactionRecordRepository,
@@ -95,6 +108,7 @@ import { EmpresaRepository } from './repositories/empresa.repository';
     StatementImportRepository,
     CashArqueoRepository,
     EmpresaRepository,
+    CategoryBudgetRepository,
   ],
   exports: [
     FinancialObjectiveService,

@@ -89,7 +89,17 @@ $$;
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'financial_objective_type_enum') THEN
-    CREATE TYPE financial_objective_type_enum AS ENUM ('loan', 'savings', 'goal');
+    CREATE TYPE financial_objective_type_enum AS ENUM ('loan', 'savings', 'goal', 'emergency_fund');
+  ELSE
+    -- Agregar 'emergency_fund' si no existe (bases ya instaladas antes de
+    -- este cambio). Ver también migrations/20260913-add-emergency-fund-objective-type.sql.
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_enum e
+      JOIN pg_type t ON e.enumtypid = t.oid
+      WHERE t.typname = 'financial_objective_type_enum' AND e.enumlabel = 'emergency_fund'
+    ) THEN
+      ALTER TYPE financial_objective_type_enum ADD VALUE 'emergency_fund';
+    END IF;
   END IF;
 END
 $$;
@@ -458,6 +468,53 @@ COMMENT ON COLUMN finance.financial_objective.bank                  IS 'Banco ci
 COMMENT ON COLUMN finance.financial_objective.current_profitability  IS 'Rentabilidad anual vigente (ej: 11.50 = 11.5%)';
 COMMENT ON COLUMN finance.financial_objective.quota_calculation     IS 'Resultado del ultimo calculo de cuota (reference, no creado)';
 COMMENT ON COLUMN finance.financial_objective.account_id            IS 'Cuenta bancaria vinculada a la meta (patrimonio).';
+
+-- ── finance.category_budget (presupuesto manual por categoría/periodo) ──
+-- Tabla de configuración de bajo volumen (no transaccional, no
+-- particionada): no toca ni afecta el particionamiento de
+-- finance.transaction_record. category_id/subcategory_id sin FK física
+-- a catalog.* (aislamiento entre esquemas, igual que transaction_record).
+CREATE TABLE IF NOT EXISTS finance.category_budget (
+  id                       BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  user_id                  BIGINT          NOT NULL,
+  category_id              BIGINT          NOT NULL,
+  subcategory_id           BIGINT,
+  year                     SMALLINT        NOT NULL,
+  month                    SMALLINT        NOT NULL,
+  limit_amount             NUMERIC(15,2)   NOT NULL,
+  currency                 VARCHAR(3)      NOT NULL DEFAULT 'COP',
+  alert_threshold_percent  NUMERIC(5,2)    NOT NULL DEFAULT 80,
+  is_active                BOOLEAN         NOT NULL DEFAULT TRUE,
+  created_at               TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at               TIMESTAMP,
+  deleted_at               TIMESTAMP,
+
+  CONSTRAINT uq_category_budget_user_category_period
+    UNIQUE (user_id, category_id, subcategory_id, year, month)
+);
+
+CREATE INDEX IF NOT EXISTS idx_category_budget_user ON finance.category_budget (user_id);
+CREATE INDEX IF NOT EXISTS idx_category_budget_category ON finance.category_budget (category_id);
+CREATE INDEX IF NOT EXISTS idx_category_budget_active ON finance.category_budget (is_active);
+
+-- Refuerzo a nivel de esquema del caso subcategory_id IS NULL, que el
+-- UNIQUE constraint de arriba no cubre (Postgres trata cada NULL como
+-- distinto en un UNIQUE). Complementa el control ya existente a nivel
+-- de aplicación (ConflictException en CategoryBudgetRepository).
+-- Excluye filas con deleted_at (borrado lógico): una fila borrada no debe
+-- seguir bloqueando un presupuesto nuevo para el mismo user/category/periodo.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_category_budget_user_category_period_null_subcat
+  ON finance.category_budget (user_id, category_id, year, month)
+  WHERE subcategory_id IS NULL AND deleted_at IS NULL;
+
+COMMENT ON TABLE finance.category_budget
+  IS 'Presupuesto manual por categoría/subcategoría/periodo definido por el usuario (no derivado de 50/30/20). category_id/subcategory_id sin FK física a catalog.* (aislamiento entre esquemas, igual que transaction_record).';
+
+COMMENT ON COLUMN finance.category_budget.category_id
+  IS 'Referencia lógica a catalog.category.id, resuelta vía CategoryService. Sin FK física (esquemas separados, convención del repo).';
+
+COMMENT ON COLUMN finance.category_budget.subcategory_id
+  IS 'Referencia lógica a catalog.subcategory.id, resuelta vía SubcategoryService. Sin FK física. Nullable: presupuesto puede ser a nivel de categoría completa.';
 
 -- statement_import_status_enum
 DO $$
