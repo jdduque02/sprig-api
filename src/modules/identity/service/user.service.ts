@@ -54,7 +54,7 @@ export class UserService {
         ...userPayload,
         external_id: keycloakId,
         roles: ['user'],
-      } as unknown as Omit<CreateUserDto, 'password'> & DeepPartial<AppUser>);
+      });
       this.logger.log(`Usuario creado y sincronizado con Keycloak: ${user.id}`);
       return this.toDetailDto(user);
     } catch (error) {

@@ -67,7 +67,16 @@ export class FinancialProfileRepository {
     userId: string,
     dto: UpdateFinancialProfileDto,
   ): Promise<FinancialProfile> {
-    const profile = await this.findByUserId(userId);
+    // OJO: usar el repo directo, no `findByUserId` — ese devuelve
+    // `monthly_income` ya DESENCRIPTADO, y si se mergeara ese valor de
+    // vuelta sobre la entidad se guardaría en claro (perdiendo el cifrado
+    // AES-256-GCM) en cada update que no toque `monthly_income`.
+    const profile = await this.repo.findOne({ where: { user_id: userId } });
+    if (!profile) {
+      throw new NotFoundException(
+        this.i18n.t('financial_profile.NOT_FOUND', { args: { userId } }),
+      );
+    }
 
     const updateData: Record<string, unknown> = { ...dto };
 
