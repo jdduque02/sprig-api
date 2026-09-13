@@ -407,6 +407,4 @@ import { ConfigModule } from '@nestjs/config';
   ],
   exports: [LoggingService],
 })
-class LoggingModule {}
-
-
+export class LoggingModule {}

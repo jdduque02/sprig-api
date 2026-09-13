@@ -16,7 +16,6 @@ import { LoggingService } from '@shared/services/logging.service';
 import {
   I18nContext,
   I18nService,
-  I18nTranslator,
   I18nValidationException,
 } from 'nestjs-i18n';
 import { Request } from 'express';
@@ -48,10 +47,6 @@ export class ErrorsInterceptor implements NestInterceptor {
     private readonly loggingService: LoggingService,
     @Inject(I18nService) private readonly i18n: I18nService,
   ) {}
-
-  private getI18n(context?: ExecutionContext): I18nTranslator | undefined {
-    return I18nContext.current(context) ?? this.i18n;
-  }
 
   /**
    * Traduce una clave i18n resolviendo el idioma real de la request

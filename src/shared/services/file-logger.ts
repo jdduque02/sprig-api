@@ -35,7 +35,12 @@ export class FileLogger implements LoggerService {
     this.writeEntry('VERBOSE', message, context);
   }
 
-  private writeEntry(level: string, message: string, context?: string, trace?: string) {
+  private writeEntry(
+    level: string,
+    message: string,
+    context?: string,
+    trace?: string,
+  ) {
     const entry = {
       pid: process.pid,
       timestamp: new Date().toISOString(),

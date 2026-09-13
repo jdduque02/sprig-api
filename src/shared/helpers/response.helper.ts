@@ -235,4 +235,3 @@ export class ResponseHelper {
     return String(error);
   }
 }
-

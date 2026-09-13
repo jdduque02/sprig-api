@@ -12,7 +12,6 @@ import { v4 as uuidv4 } from 'uuid';
 import {
   I18nService,
   I18nContext,
-  I18nTranslator,
   I18nValidationException,
 } from 'nestjs-i18n';
 
@@ -28,10 +27,6 @@ export class HttpExceptionFilter implements ExceptionFilter {
   constructor(
     @Optional() @Inject(I18nService) private readonly i18n?: I18nService,
   ) {}
-
-  private getI18n(host?: ArgumentsHost): I18nTranslator | undefined {
-    return I18nContext.current(host) ?? this.i18n;
-  }
 
   /**
    * Traduce una clave i18n resolviendo el idioma real de la request

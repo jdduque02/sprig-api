@@ -20,7 +20,6 @@ import { getRabbitMQConfig } from '@config/rabbitmq.config';
 import { getCsrfProtection } from '@config/csrf.config';
 import { FileLogger } from '@shared/services/file-logger';
 import { DataSource } from 'typeorm';
-import type { Request, Response } from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -94,15 +93,9 @@ async function bootstrap() {
   const globalPrefix = `api/v${apiVersion}`;
   app.setGlobalPrefix(globalPrefix);
 
-  // Health (sin auth) — se monta tras el prefix global vía middleware simple
-  const httpAdapter = app.getHttpAdapter();
-  httpAdapter.get(`/${globalPrefix}/health`, (_req: Request, res: Response) => {
-    res.status(200).json({
-      status: true,
-      message: 'ok',
-      timestamp: new Date().toISOString(),
-    });
-  });
+  // Health check real (Terminus): ver AdminModule -> HealthController.
+  // Se monta en `/${globalPrefix}/health`, es público (sin guards) y no
+  // expone datos sensibles — solo el estado up/down de cada dependencia.
 
   // --- Swagger (deshabilitado en producción) ---
   const swaggerVersion = configService.get<string>('VERSION') ?? '1';
