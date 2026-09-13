@@ -42,14 +42,16 @@ export class BankAccountResponseDto {
   yield_frequency!: string;
 
   @ApiProperty({
-    description: 'Tipo de tasa: EA (Efectiva Anual), nominal, MV (Mes Vencido).',
+    description:
+      'Tipo de tasa: EA (Efectiva Anual), nominal, MV (Mes Vencido).',
     example: 'EA',
     enum: ['EA', 'nominal', 'MV'],
   })
   rate_type!: string;
 
   @ApiProperty({
-    description: 'Si true, el job de interés capitaliza automáticamente esta cuenta.',
+    description:
+      'Si true, el job de interés capitaliza automáticamente esta cuenta.',
     example: true,
   })
   interest_enabled!: boolean;
@@ -83,7 +85,8 @@ export class BankAccountResponseDto {
   start_date!: string | null;
 
   @ApiProperty({
-    description: 'Fecha de vencimiento del CDT (calculada: start_date + term_days).',
+    description:
+      'Fecha de vencimiento del CDT (calculada: start_date + term_days).',
     example: '2027-08-01',
     nullable: true,
   })

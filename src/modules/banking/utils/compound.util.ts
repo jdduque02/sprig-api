@@ -30,7 +30,10 @@ function eaToPeriodic(eaRate: number, frequency: YieldFrequency): number {
  * Convert a nominal annual rate to a periodic rate for the given frequency.
  * Nominal means r/n where n = periods per year.
  */
-function nominalToPeriodic(nominalRate: number, frequency: YieldFrequency): number {
+function nominalToPeriodic(
+  nominalRate: number,
+  frequency: YieldFrequency,
+): number {
   const r = nominalRate / 100;
   const n = frequency === 'daily' ? 365 : frequency === 'monthly' ? 12 : 1;
   return r / n;
@@ -45,7 +48,8 @@ export function periodicRate(
   frequency: YieldFrequency,
 ): number {
   if (rateType === 'EA') return eaToPeriodic(annualRatePercent, frequency);
-  if (rateType === 'nominal') return nominalToPeriodic(annualRatePercent, frequency);
+  if (rateType === 'nominal')
+    return nominalToPeriodic(annualRatePercent, frequency);
   // MV — treat stored value as EA, convert to monthly, then to requested freq
   const monthlyRate = eaToPeriodic(annualRatePercent, 'monthly');
   if (frequency === 'monthly') return monthlyRate;
@@ -57,7 +61,12 @@ export function periodicRate(
  * Compound interest factor for a given principal over N periods.
  * factor = (1 + periodicRate)^N
  */
-export function compoundFactor(annualRatePercent: number, rateType: RateType, frequency: YieldFrequency, periods: number): number {
+export function compoundFactor(
+  annualRatePercent: number,
+  rateType: RateType,
+  frequency: YieldFrequency,
+  periods: number,
+): number {
   if (annualRatePercent <= 0 || periods <= 0) return 1;
   const r = periodicRate(annualRatePercent, rateType, frequency);
   return Math.pow(1 + r, periods);
@@ -73,7 +82,9 @@ export function futureValue(
   frequency: YieldFrequency,
   periods: number,
 ): number {
-  return round2(principal * compoundFactor(annualRatePercent, rateType, frequency, periods));
+  return round2(
+    principal * compoundFactor(annualRatePercent, rateType, frequency, periods),
+  );
 }
 
 /**
@@ -131,10 +142,17 @@ export function projectYield(
   const years = [1, 3, 5, 10];
 
   for (const y of years) {
-    const periodsPerYear = frequency === 'daily' ? 365 : frequency === 'monthly' ? 12 : 1;
+    const periodsPerYear =
+      frequency === 'daily' ? 365 : frequency === 'monthly' ? 12 : 1;
     const totalPeriods = periodsPerYear * y;
     if (annualRatePercent > 0) {
-      result[`${y}y`] = futureValue(principal, annualRatePercent, rateType, frequency, totalPeriods);
+      result[`${y}y`] = futureValue(
+        principal,
+        annualRatePercent,
+        rateType,
+        frequency,
+        totalPeriods,
+      );
     } else {
       result[`${y}y`] = round2(principal);
     }

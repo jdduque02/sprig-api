@@ -53,8 +53,7 @@ export class InterestAccrualScheduler {
     skipped: number;
     errors: number;
   }> {
-    const accounts =
-      await this.interestAccrualService.findEligibleAccounts();
+    const accounts = await this.interestAccrualService.findEligibleAccounts();
 
     let accrued = 0;
     let skipped = 0;
@@ -66,8 +65,10 @@ export class InterestAccrualScheduler {
           .toLocaleDateString('sv-SE', { timeZone: 'America/Bogota' })
           .slice(0, 10);
 
-        const result =
-          this.interestAccrualService.calculateInterest(account, today);
+        const result = this.interestAccrualService.calculateInterest(
+          account,
+          today,
+        );
 
         if (!result) {
           skipped++;

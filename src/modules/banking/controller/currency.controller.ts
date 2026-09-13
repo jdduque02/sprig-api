@@ -6,14 +6,18 @@ import {
   Inject,
   InternalServerErrorException,
   Logger,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiOkResponse,
   ApiInternalServerErrorResponse,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { I18nService } from 'nestjs-i18n';
+import { AuthGuard } from '@auth/guards/auth.guard';
+import { ApiIntrospectGuardResponse } from '@auth/decorators/api-introspect-guard-response.decorator';
 import {
   MarketDataService,
   FxRates,
@@ -21,6 +25,9 @@ import {
 import { ErrorResponseDto } from '@shared/dto/error-response.dto';
 
 @ApiTags('currency')
+@UseGuards(AuthGuard)
+@ApiIntrospectGuardResponse()
+@ApiBearerAuth('bearer')
 @Controller('currency')
 export class CurrencyController {
   private readonly logger = new Logger(CurrencyController.name);

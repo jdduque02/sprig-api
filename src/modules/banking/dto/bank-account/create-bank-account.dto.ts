@@ -90,7 +90,8 @@ export class CreateBankAccountDto {
   yield_frequency?: string;
 
   @ApiPropertyOptional({
-    description: 'Tipo de tasa: EA (Efectiva Anual), nominal, MV (Mes Vencido).',
+    description:
+      'Tipo de tasa: EA (Efectiva Anual), nominal, MV (Mes Vencido).',
     example: 'EA',
     enum: ['EA', 'nominal', 'MV'],
   })
@@ -101,7 +102,8 @@ export class CreateBankAccountDto {
   rate_type?: string;
 
   @ApiPropertyOptional({
-    description: 'Si true, el job de interés capitaliza automáticamente esta cuenta.',
+    description:
+      'Si true, el job de interés capitaliza automáticamente esta cuenta.',
     example: true,
   })
   @IsOptional()
@@ -127,7 +129,8 @@ export class CreateBankAccountDto {
   term_days?: number;
 
   @ApiPropertyOptional({
-    description: 'Fecha de inicio del ciclo CDT (requerido si account_type = cdt).',
+    description:
+      'Fecha de inicio del ciclo CDT (requerido si account_type = cdt).',
     example: '2026-08-01',
   })
   @IsOptional()

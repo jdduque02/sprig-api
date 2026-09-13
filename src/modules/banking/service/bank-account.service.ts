@@ -5,7 +5,11 @@ import { UpdateBankAccountDto } from '@banking/dto/bank-account/update-bank-acco
 import { BankAccount } from '@banking/entities/bank-account.entity';
 import { BankAccountResponseDto } from '@banking/dto/bank-account/bank-account-response.dto';
 import { EncryptionService } from '@shared/services/encryption.service';
-import { projectYield, YieldFrequency, RateType } from '@banking/utils/compound.util';
+import {
+  projectYield,
+  YieldFrequency,
+  RateType,
+} from '@banking/utils/compound.util';
 
 @Injectable()
 export class BankAccountService {

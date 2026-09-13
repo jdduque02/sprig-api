@@ -18,10 +18,12 @@ import {
   ApiBadRequestResponse,
   ApiNotFoundResponse,
   ApiInternalServerErrorResponse,
+  ApiForbiddenResponse,
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { AuthGuard } from '@auth/guards/auth.guard';
 import { OwnershipGuard } from '@auth/guards/ownership.guard';
+import { AdminGuard } from '@auth/guards/admin.guard';
 import { ApiIntrospectGuardResponse } from '@auth/decorators/api-introspect-guard-response.decorator';
 import { CurrentUser } from '@auth/decorators/current-user.decorator';
 import { IntrospectResponse } from '@auth/interfaces/IntrospectResponse.dto';
@@ -166,13 +168,19 @@ export class BankAccountController {
   }
 
   @Post('accrue-interest')
+  @UseGuards(AdminGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Ejecutar capitalización de intereses manual (backfill/dev)',
+    summary:
+      'Ejecutar capitalización de intereses manual (backfill/dev, solo admin)',
   })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Resultado de la ejecución.',
+  })
+  @ApiForbiddenResponse({
+    description: 'Requiere rol admin.',
+    type: ErrorResponseDto,
   })
   async accrueInterest(
     @Param('userId', ParseIntPipe) _userId: number,
