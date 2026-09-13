@@ -1,6 +1,7 @@
 import {
   Column,
   CreateDateColumn,
+  DeleteDateColumn,
   Entity,
   Index,
   PrimaryGeneratedColumn,
@@ -41,4 +42,7 @@ export class NewsItem {
 
   @UpdateDateColumn({ type: 'timestamp', nullable: true })
   updated_at!: Date;
+
+  @DeleteDateColumn({ type: 'timestamp', nullable: true })
+  deleted_at!: Date | null;
 }

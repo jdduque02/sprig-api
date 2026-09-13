@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { I18nService } from 'nestjs-i18n';
 import { NewsItem } from '@news/entities/news-item.entity';
 import { NewsQueryDto } from '@news/dto/news-query.dto';
@@ -42,7 +42,8 @@ export class NewsItemRepository {
       });
     }
 
-    qb.orderBy('n.published_at', 'DESC')
+    qb.andWhere('n.deleted_at IS NULL')
+      .orderBy('n.published_at', 'DESC')
       .addOrderBy('n.created_at', 'DESC')
       .take(limit)
       .cache(`news:list:${category ?? ''}:${search ?? ''}:${limit}`, 45_000);
@@ -53,7 +54,9 @@ export class NewsItemRepository {
   }
 
   async findById(id: number): Promise<NewsItem> {
-    const item = await this.repo.findOne({ where: { id } });
+    const item = await this.repo.findOne({
+      where: { id, deleted_at: IsNull() },
+    });
     if (!item) {
       throw new NotFoundException(
         this.i18n.t('news.NOT_FOUND', { args: { id } }),
@@ -78,7 +81,7 @@ export class NewsItemRepository {
 
   async remove(id: number): Promise<void> {
     const item = await this.findById(id);
-    await this.repo.remove(item);
-    this.logger.log(`Noticia eliminada ID: ${id}`);
+    await this.repo.softRemove(item);
+    this.logger.log(`Noticia eliminada (soft delete) ID: ${id}`);
   }
 }
