@@ -393,9 +393,7 @@ export class AuthService {
   private get resetSecret(): string {
     const secret = this.configService.get<string>('OTP_SECRET');
     if (!secret) {
-      throw new Error(
-        'OTP_SECRET debe definirse para firmar tokens de reset.',
-      );
+      throw new Error('OTP_SECRET debe definirse para firmar tokens de reset.');
     }
     return secret;
   }

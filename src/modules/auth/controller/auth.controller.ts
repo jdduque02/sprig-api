@@ -391,7 +391,10 @@ export class AuthController {
     type: ErrorResponseDto,
   })
   encryptPassword(@Body() dto: EncryptPasswordDto) {
-    const encryptEnabled = this.configService.get<string>('AUTH_ENCRYPT_ENABLED', 'true');
+    const encryptEnabled = this.configService.get<string>(
+      'AUTH_ENCRYPT_ENABLED',
+      'true',
+    );
     if (encryptEnabled !== 'true') {
       throw new ForbiddenException(this.i18n.t('auth.ENCRYPT_DISABLED'));
     }
