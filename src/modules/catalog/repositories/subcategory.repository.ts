@@ -49,7 +49,7 @@ export class SubcategoryRepository {
 
   async findById(id: number, userId: number): Promise<Subcategory> {
     const subcategory = await this.repo.findOne({
-      where: { id, user_id: userId },
+      where: { id, user_id: userId, is_active: true },
     });
     if (!subcategory)
       throw new NotFoundException(
