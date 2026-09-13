@@ -47,4 +47,10 @@ export class IntrospectResponse {
     description: 'ID del usuario en PostgreSQL',
   })
   userId?: number;
+
+  @ApiPropertyOptional({
+    example: 'es-CO',
+    description: 'Preferencia de idioma/región del usuario (app_user.locale)',
+  })
+  locale?: string;
 }

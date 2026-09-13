@@ -93,9 +93,13 @@ describe('StatementImportRepository', () => {
       expect(created.options).toEqual({
         default_category_id: undefined,
         account_id: undefined,
+        liability_id: undefined,
+        currency: 'COP',
         skip_duplicates: false,
         default_type: undefined,
         assign_categories: false,
+        capture_companies: false,
+        default_company_id: undefined,
       });
     });
   });

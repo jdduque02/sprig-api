@@ -1,3 +1,4 @@
+import { Test } from '@nestjs/testing';
 import { NotificationGateway } from '@notification/gateway/notification.gateway';
 import { NotificationService } from '@notification/service/notification.service';
 import { NotificationPayload } from '@notification/interfaces/notification.interfaces';
@@ -112,6 +113,27 @@ describe('NotificationService', () => {
 
       expect(mockGateway.confirmMarkAllRead).toHaveBeenCalledWith(10);
     });
+  });
+});
+
+describe('NotificationGateway — resolución vía DI (forwardRef)', () => {
+  // A diferencia de `new NotificationGateway(...)`, resolver la clase a través del
+  // contenedor de Nest ejerce la metadata real de `@Inject(forwardRef(() => AuthService))`
+  // del constructor (necesaria por la dependencia circular auth <-> notification).
+  it('debe instanciarse correctamente cuando Nest resuelve sus dependencias', async () => {
+    const module = await Test.createTestingModule({
+      providers: [
+        NotificationGateway,
+        { provide: ConfigService, useValue: {} },
+        { provide: AuthService, useValue: mockAuthService },
+        { provide: I18nService, useValue: mockGatewayI18n },
+        { provide: PresenceService, useValue: mockPresenceService },
+      ],
+    }).compile();
+
+    const gateway = module.get(NotificationGateway);
+
+    expect(gateway).toBeInstanceOf(NotificationGateway);
   });
 });
 

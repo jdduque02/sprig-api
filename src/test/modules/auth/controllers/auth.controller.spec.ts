@@ -540,7 +540,7 @@ describe('AuthController', () => {
     it('debe lanzar ForbiddenException en PROD sin APP_DEV=true', () => {
       mockConfigService.get.mockImplementation(
         (key: string, fallback?: string) =>
-          key === 'NODE_ENV' ? 'PROD' : fallback,
+          key === 'AUTH_ENCRYPT_ENABLED' ? 'false' : fallback,
       );
       expect(() => controller.encryptPassword(dto)).toThrow(ForbiddenException);
       expect(mockAuthService.encryptPassword).not.toHaveBeenCalled();
@@ -549,8 +549,7 @@ describe('AuthController', () => {
     it('debe permitir encriptar en PROD si APP_DEV=true', () => {
       mockConfigService.get.mockImplementation(
         (key: string, fallback?: string) => {
-          if (key === 'NODE_ENV') return 'PROD';
-          if (key === 'APP_DEV') return 'true';
+          if (key === 'AUTH_ENCRYPT_ENABLED') return 'true';
           return fallback;
         },
       );

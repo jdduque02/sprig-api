@@ -2,8 +2,6 @@ import { IsDateString, IsEnum, IsIn, IsOptional } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { TransactionTypeEnum } from '@shared/enums';
 
-export type TransactionGroupBy = 'day' | 'week' | 'month';
-
 export class TransactionSummaryQueryDto {
   @ApiPropertyOptional({
     example: '2026-01-01',
@@ -34,4 +32,12 @@ export class TransactionSummaryQueryDto {
   @IsOptional()
   @IsEnum(TransactionTypeEnum)
   type?: TransactionTypeEnum;
+
+  @ApiPropertyOptional({
+    enum: ['COP', 'USD'],
+    description: 'Filtrar por moneda.',
+    example: 'COP',
+  })
+  @IsOptional()
+  currency?: string;
 }

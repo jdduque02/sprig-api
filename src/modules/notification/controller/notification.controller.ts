@@ -20,6 +20,7 @@ import {
   ApiNotFoundResponse,
   ApiInternalServerErrorResponse,
   ApiQuery,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { AuthGuard } from '@auth/guards/auth.guard';
 import { OwnershipGuard } from '@auth/guards/ownership.guard';
@@ -36,6 +37,7 @@ import { ErrorResponseDto } from '@shared/dto/error-response.dto';
 @ApiTags('notification')
 @UseGuards(AuthGuard, OwnershipGuard)
 @ApiIntrospectGuardResponse()
+@ApiBearerAuth('bearer')
 @Controller('users/:userId/notifications')
 export class NotificationController {
   constructor(private readonly notificationService: NotificationService) {}

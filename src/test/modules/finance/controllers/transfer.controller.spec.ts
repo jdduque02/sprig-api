@@ -7,6 +7,7 @@ const mockService = {
   findOne: jest.fn(),
   update: jest.fn(),
   remove: jest.fn(),
+  clone: jest.fn(),
 };
 
 const currentUser = { userId: 10 };
@@ -62,5 +63,13 @@ describe('TransferController', () => {
   it('remove delega', async () => {
     await controller.remove(10, 7, currentUser as never);
     expect(mockService.remove).toHaveBeenCalledWith(7, 10);
+  });
+
+  it('clone delega con userId, id y dto', async () => {
+    const dto = { amount: 90000 };
+    mockService.clone.mockResolvedValue({ transfer_group_id: 'g2' });
+    const result = await controller.clone(10, 7, dto, currentUser as never);
+    expect(mockService.clone).toHaveBeenCalledWith(7, 10, dto);
+    expect(result).toEqual({ transfer_group_id: 'g2' });
   });
 });

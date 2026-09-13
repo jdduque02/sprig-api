@@ -21,6 +21,7 @@ import { IntelligenceModule } from './modules/intelligence/intelligence.module';
 import { NewsModule } from './modules/news/news.module';
 import { MailModule } from './modules/mail/mail.module';
 import { SupportModule } from './modules/support/support.module';
+import { AdminModule } from './modules/admin/admin.module';
 import { ResponseInterceptor } from '@shared/interceptors/response.interceptor';
 import { ErrorsInterceptor } from '@shared/interceptors/error.interceptor';
 import { HttpExceptionFilter } from '@shared/filters/http-exception.filter';
@@ -57,6 +58,7 @@ import { getKeycloakConfig } from '@config/keycloak.config';
     NewsModule,
     MailModule,
     SupportModule,
+    AdminModule,
     KeycloakConnectModule.registerAsync({
       useFactory: getKeycloakConfig,
       inject: [ConfigService],

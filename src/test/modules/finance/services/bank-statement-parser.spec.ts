@@ -1,14 +1,10 @@
-jest.mock('pdfjs-dist/build/pdf.js', () => ({
-  getDocument: jest.fn(),
-}));
-
-import * as pdfjs from 'pdfjs-dist/build/pdf.js';
 import {
   extractTextLines,
   parseAmount,
   parseDateFromToken,
   parsePdfStatement,
   parseStatementLines,
+  pdfjsLoader,
   TextLine,
 } from '@finance/service/bank-statement-parser';
 import { TransactionTypeEnum } from '@shared/enums';
@@ -1577,10 +1573,17 @@ describe('bank-statement-parser', () => {
   });
 
   describe('extractTextLines (PDF mock)', () => {
-    const getDocumentMock = pdfjs.getDocument as unknown as jest.Mock;
+    const getDocumentMock = jest.fn();
 
     beforeEach(() => {
       getDocumentMock.mockReset();
+      jest
+        .spyOn(pdfjsLoader, 'load')
+        .mockResolvedValue({ getDocument: getDocumentMock } as never);
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
     });
 
     function makeDoc(
@@ -1689,10 +1692,17 @@ describe('bank-statement-parser', () => {
   });
 
   describe('parsePdfStatement (PDF mock)', () => {
-    const getDocumentMock = pdfjs.getDocument as unknown as jest.Mock;
+    const getDocumentMock = jest.fn();
 
     beforeEach(() => {
       getDocumentMock.mockReset();
+      jest
+        .spyOn(pdfjsLoader, 'load')
+        .mockResolvedValue({ getDocument: getDocumentMock } as never);
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
     });
 
     it('extrae y parsea un PDF sencillo pasando la contraseña', async () => {

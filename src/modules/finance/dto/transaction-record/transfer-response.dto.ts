@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { FixedTypeEnum, FrequencyEnum } from '@shared/enums';
 
 export class TransferMovementDto {
   @ApiProperty({ example: 100 })
@@ -9,6 +10,13 @@ export class TransferMovementDto {
     example: 1,
   })
   account_id!: number | null;
+
+  @ApiPropertyOptional({
+    description: 'ID del pasivo financiero de este lado (tarjeta de crédito).',
+    example: 3,
+    nullable: true,
+  })
+  liability_id!: number | null;
 
   @ApiProperty({
     description: 'Lado del movimiento: origen (debita) o destino (acredita).',
@@ -83,6 +91,28 @@ export class TransferResponseDto {
     nullable: true,
   })
   objective_id!: number | null;
+
+  @ApiPropertyOptional({
+    description: 'ID del pasivo financiero de destino (tarjeta de crédito).',
+    example: 3,
+    nullable: true,
+  })
+  destination_liability_id!: number | null;
+
+  @ApiPropertyOptional({ enum: FrequencyEnum, nullable: true })
+  frequency!: FrequencyEnum | null;
+
+  @ApiPropertyOptional({ enum: FixedTypeEnum, nullable: true })
+  fixed_type!: FixedTypeEnum | null;
+
+  @ApiPropertyOptional({ example: 15, nullable: true })
+  due_day!: number | null;
+
+  @ApiPropertyOptional({ example: 3, nullable: true })
+  reminder_days!: number | null;
+
+  @ApiPropertyOptional({ example: false })
+  is_fixed!: boolean;
 
   @ApiProperty({ type: TransferMovementDto })
   source!: TransferMovementDto;

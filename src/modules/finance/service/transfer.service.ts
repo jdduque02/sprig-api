@@ -3,6 +3,7 @@ import { TransactionRecordRepository } from '@finance/repositories/transaction-r
 import { TransactionRecord } from '@finance/entities/transaction-record.entity';
 import { CreateTransferDto } from '@finance/dto/transaction-record/create-transfer.dto';
 import { UpdateTransferDto } from '@finance/dto/transaction-record/update-transfer.dto';
+import { CloneTransferDto } from '@finance/dto/transaction-record/clone-transfer.dto';
 import {
   TransferMovementDto,
   TransferResponseDto,
@@ -66,6 +67,19 @@ export class TransferService {
     return this.transactionRecordRepository.softDeleteTransfer(id, userId);
   }
 
+  async clone(
+    id: number,
+    userId: number,
+    dto: CloneTransferDto,
+  ): Promise<TransferResponseDto> {
+    const pair = await this.transactionRecordRepository.cloneTransfer(
+      id,
+      userId,
+      dto,
+    );
+    return this.toResponseDto(pair);
+  }
+
   /**
    * Como findTransfers devuelve ambos lados de cada par, agrupa por
    * transfer_group_id para devolver una transferencia por grupo.
@@ -85,7 +99,9 @@ export class TransferService {
     const first = pair[0];
     const source = pair.find((r) => r.origin_account_id != null) ?? first;
     const destination =
-      pair.find((r) => r.destination_account_id != null) ?? first;
+      pair.find(
+        (r) => r.destination_account_id != null || r.liability_id != null,
+      ) ?? first;
 
     return {
       transfer_group_id: first.transfer_group_id ?? '',
@@ -94,6 +110,12 @@ export class TransferService {
       description: first.description ?? null,
       reference_code: first.reference_code ?? null,
       objective_id: destination.objective_id ?? null,
+      destination_liability_id: destination.liability_id ?? null,
+      is_fixed: first.is_fixed ?? false,
+      frequency: first.frequency ?? null,
+      fixed_type: first.fixed_type ?? null,
+      due_day: first.due_day ?? null,
+      reminder_days: first.reminder_days ?? null,
       source: this.toMovementDto(source, 'source'),
       destination: this.toMovementDto(destination, 'destination'),
     };
@@ -109,6 +131,7 @@ export class TransferService {
         side === 'source'
           ? record.origin_account_id
           : record.destination_account_id,
+      liability_id: side === 'destination' ? record.liability_id : null,
       side,
       bank_name:
         side === 'source'

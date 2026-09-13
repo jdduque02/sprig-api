@@ -128,6 +128,7 @@ export class EncryptionService implements OnModuleInit {
   isEncrypted(value: string | null | undefined): boolean {
     if (!value) return false;
     const parts = value.split(':');
-    return parts.length === 3;
+    if (parts.length !== 3) return false;
+    return parts.every((p) => /^[A-Za-z0-9+/=]+$/.test(p));
   }
 }

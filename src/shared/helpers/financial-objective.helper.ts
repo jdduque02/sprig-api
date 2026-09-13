@@ -14,9 +14,14 @@ export function applyCompletion(
     'current_balance' | 'target_amount' | 'is_completed' | 'completed_at'
   >,
 ): void {
-  const reached =
-    Number(objective.current_balance ?? 0) >=
-    Number(objective.target_amount ?? 0);
+  const target = Number(objective.target_amount ?? 0);
+  // Una meta sin monto objetivo es abierta: nunca se auto-completa.
+  if (objective.target_amount == null || target <= 0) {
+    objective.is_completed = false;
+    objective.completed_at = null;
+    return;
+  }
+  const reached = Number(objective.current_balance ?? 0) >= target;
   if (reached) {
     objective.is_completed = true;
     if (!objective.completed_at) objective.completed_at = new Date();
@@ -41,15 +46,15 @@ export function todayInTimeZone(timezone: string): string {
 }
 
 export interface FinancialObjectiveProgress {
-  amount_remaining: number;
-  progress_percent: number;
+  amount_remaining: number | null;
+  progress_percent: number | null;
   days_remaining: number | null;
 }
 
 /**
  * Campos calculados de una meta para la respuesta de la API:
- *   - amount_remaining:  lo que falta ahorrar (mín. 0).
- *   - progress_percent:  % de avance (0-100).
+ *   - amount_remaining:  lo que falta ahorrar (mín. 0). null si no hay monto.
+ *   - progress_percent:  % de avance (0-100). null si no hay monto objetivo.
  *   - days_remaining:    días calendario restantes hasta end_date (0 si ya
  *                        venció o no hay fecha). Comparación en UTC.
  */
@@ -59,10 +64,14 @@ export function computeObjectiveProgress(
     'current_balance' | 'target_amount' | 'end_date'
   >,
 ): FinancialObjectiveProgress {
-  const target = Number(objective.target_amount ?? 0);
-  const current = Number(objective.current_balance ?? 0);
-  const amount_remaining = Math.max(0, round2(target - current));
-  const progress_percent = target > 0 ? round2((current / target) * 100) : 0;
+  let amount_remaining: number | null = null;
+  let progress_percent: number | null = null;
+  if (objective.target_amount != null) {
+    const current = Number(objective.current_balance ?? 0);
+    const target = Number(objective.target_amount);
+    amount_remaining = Math.max(0, round2(target - current));
+    progress_percent = target > 0 ? round2((current / target) * 100) : 0;
+  }
 
   let days_remaining: number | null = null;
   if (objective.end_date) {

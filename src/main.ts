@@ -18,13 +18,16 @@ import cookieParser from 'cookie-parser';
 import { ConfigService } from '@nestjs/config';
 import { getRabbitMQConfig } from '@config/rabbitmq.config';
 import { getCsrfProtection } from '@config/csrf.config';
+import { FileLogger } from '@shared/services/file-logger';
 import { DataSource } from 'typeorm';
-import type { Request, Response } from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
   app.enableShutdownHooks();
+
+  // Logger personalizado que captura logs a archivo
+  app.useLogger(new FileLogger());
 
   // Registrar adaptador Socket.io
   app.useWebSocketAdapter(new IoAdapter(app));
@@ -90,37 +93,33 @@ async function bootstrap() {
   const globalPrefix = `api/v${apiVersion}`;
   app.setGlobalPrefix(globalPrefix);
 
-  // Health (sin auth) — se monta tras el prefix global vía middleware simple
-  const httpAdapter = app.getHttpAdapter();
-  httpAdapter.get(`/${globalPrefix}/health`, (_req: Request, res: Response) => {
-    res.status(200).json({
-      status: true,
-      message: 'ok',
-      timestamp: new Date().toISOString(),
-    });
-  });
+  // Health check real (Terminus): ver AdminModule -> HealthController.
+  // Se monta en `/${globalPrefix}/health`, es público (sin guards) y no
+  // expone datos sensibles — solo el estado up/down de cada dependencia.
 
-  // --- Swagger ---
-  const config = getSwaggerConfig(configService);
-  const documentFactory = () => SwaggerModule.createDocument(app, config);
-
-  const logoCandidates = [
-    join(__dirname, '..', 'public', 'logo.svg'),
-    join(__dirname, '..', '..', 'public', 'logo.svg'),
-  ];
-  const logoPath = logoCandidates.find((p) => existsSync(p));
-  if (!logoPath) throw new Error('logo.svg not found');
-  const logoBase64 = readFileSync(logoPath).toString('base64');
-
+  // --- Swagger (deshabilitado en producción) ---
   const swaggerVersion = configService.get<string>('VERSION') ?? '1';
-  SwaggerModule.setup(`api/v${swaggerVersion}/docs`, app, documentFactory, {
-    customCss: getSwaggerCustomCss(),
-    customJs: getSwaggerCustomJs(logoBase64),
-    customSiteTitle: 'Sprig API Docs',
-    customfavIcon: `data:image/svg+xml;base64,${logoBase64}`,
-    jsonDocumentUrl: `api/v${swaggerVersion}/docs-json`,
-    yamlDocumentUrl: `api/v${swaggerVersion}/docs-yaml`,
-  });
+  if (!isProd) {
+    const config = getSwaggerConfig(configService);
+    const documentFactory = () => SwaggerModule.createDocument(app, config);
+
+    const logoCandidates = [
+      join(__dirname, '..', 'public', 'logo.svg'),
+      join(__dirname, '..', '..', 'public', 'logo.svg'),
+    ];
+    const logoPath = logoCandidates.find((p) => existsSync(p));
+    if (!logoPath) throw new Error('logo.svg not found');
+    const logoBase64 = readFileSync(logoPath).toString('base64');
+
+    SwaggerModule.setup(`api/v${swaggerVersion}/docs`, app, documentFactory, {
+      customCss: getSwaggerCustomCss(),
+      customJsStr: getSwaggerCustomJs(logoBase64),
+      customSiteTitle: 'Sprig API Docs',
+      customfavIcon: `data:image/svg+xml;base64,${logoBase64}`,
+      jsonDocumentUrl: `api/v${swaggerVersion}/docs-json`,
+      yamlDocumentUrl: `api/v${swaggerVersion}/docs-yaml`,
+    });
+  }
 
   // Using port from environment variable or 3000 as fallback
   const port = configService.get<number>('PORT') ?? 3000;
@@ -151,4 +150,4 @@ async function bootstrap() {
   process.on('SIGTERM', () => void shutdown('SIGTERM'));
   process.on('SIGINT', () => void shutdown('SIGINT'));
 }
-bootstrap();
+void bootstrap();

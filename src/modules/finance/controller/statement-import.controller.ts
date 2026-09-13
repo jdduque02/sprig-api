@@ -24,6 +24,7 @@ import {
   ApiExtraModels,
   ApiQuery,
   getSchemaPath,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
@@ -46,6 +47,7 @@ import { ErrorResponseDto } from '@shared/dto/error-response.dto';
 @UseGuards(AuthGuard, OwnershipGuard)
 @ApiIntrospectGuardResponse()
 @ApiExtraModels(StatementImportResponseDto)
+@ApiBearerAuth('bearer')
 @Controller('users/:userId/statement-imports')
 export class StatementImportController {
   constructor(

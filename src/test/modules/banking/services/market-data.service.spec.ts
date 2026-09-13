@@ -54,6 +54,13 @@ describe('MarketDataService', () => {
       );
     });
 
+    it('lanza error si CoinGecko no devuelve precio en USD', async () => {
+      mockHttpService.get.mockReturnValue(of(response({ bitcoin: {} })));
+      await expect(service.fetchQuote('BTC', 'coingecko')).rejects.toThrow(
+        /no se pudo obtener la cotización/i,
+      );
+    });
+
     it('lanza error si el símbolo cripto no es soportado', async () => {
       await expect(service.fetchQuote('NOPE', 'coingecko')).rejects.toThrow(
         /no soportado/i,

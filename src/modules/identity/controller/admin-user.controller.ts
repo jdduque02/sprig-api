@@ -22,6 +22,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
   getSchemaPath,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { UserService } from '@identity/service/user.service';
 import { UserQueryDto } from '@identity/dto/user/user-query.dto';
@@ -39,6 +40,7 @@ import { IntrospectResponse } from '@auth/interfaces/IntrospectResponse.dto';
 @ApiExtraModels(UserResponseDto)
 @UseGuards(AuthGuard, AdminGuard)
 @ApiIntrospectGuardResponse()
+@ApiBearerAuth('bearer')
 @Controller('admin/users')
 export class AdminUserController {
   constructor(private readonly userService: UserService) {}

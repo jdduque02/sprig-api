@@ -18,13 +18,17 @@ import {
   ApiBadRequestResponse,
   ApiNotFoundResponse,
   ApiInternalServerErrorResponse,
+  ApiForbiddenResponse,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { AuthGuard } from '@auth/guards/auth.guard';
 import { OwnershipGuard } from '@auth/guards/ownership.guard';
+import { AdminGuard } from '@auth/guards/admin.guard';
 import { ApiIntrospectGuardResponse } from '@auth/decorators/api-introspect-guard-response.decorator';
 import { CurrentUser } from '@auth/decorators/current-user.decorator';
 import { IntrospectResponse } from '@auth/interfaces/IntrospectResponse.dto';
 import { BankAccountService } from '@banking/service/bank-account.service';
+import { InterestAccrualScheduler } from '@banking/service/interest-accrual.scheduler';
 import { CreateBankAccountDto } from '@banking/dto/bank-account/create-bank-account.dto';
 import { UpdateBankAccountDto } from '@banking/dto/bank-account/update-bank-account.dto';
 import { BankAccountResponseDto } from '@banking/dto/bank-account/bank-account-response.dto';
@@ -33,9 +37,13 @@ import { ErrorResponseDto } from '@shared/dto/error-response.dto';
 @ApiTags('banking')
 @UseGuards(AuthGuard, OwnershipGuard)
 @ApiIntrospectGuardResponse()
+@ApiBearerAuth('bearer')
 @Controller('users/:userId/bank-accounts')
 export class BankAccountController {
-  constructor(private readonly bankAccountService: BankAccountService) {}
+  constructor(
+    private readonly bankAccountService: BankAccountService,
+    private readonly interestAccrualScheduler: InterestAccrualScheduler,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -157,5 +165,27 @@ export class BankAccountController {
     @CurrentUser() _currentUser: IntrospectResponse,
   ) {
     return this.bankAccountService.getProjectedYield(id, userId);
+  }
+
+  @Post('accrue-interest')
+  @UseGuards(AdminGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'Ejecutar capitalización de intereses manual (backfill/dev, solo admin)',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Resultado de la ejecución.',
+  })
+  @ApiForbiddenResponse({
+    description: 'Requiere rol admin.',
+    type: ErrorResponseDto,
+  })
+  async accrueInterest(
+    @Param('userId', ParseIntPipe) _userId: number,
+    @CurrentUser() _currentUser: IntrospectResponse,
+  ) {
+    return this.interestAccrualScheduler.triggerManual();
   }
 }

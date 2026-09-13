@@ -121,4 +121,12 @@ export class TransactionRecordQueryDto {
   @IsInt()
   @IsPositive()
   company_id?: number;
+
+  @ApiPropertyOptional({
+    enum: ['COP', 'USD'],
+    description: 'Filtrar por moneda.',
+    example: 'COP',
+  })
+  @IsOptional()
+  currency?: string;
 }

@@ -19,5 +19,3 @@ export const BRAND_PALETTE = {
   /** Footer / secondary text */
   footerMuted: '#555A5E',
 } as const;
-
-export type BrandPalette = typeof BRAND_PALETTE;

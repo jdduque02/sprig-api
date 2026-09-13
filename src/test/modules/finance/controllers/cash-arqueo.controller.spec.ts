@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import { CashArqueoController } from '@finance/controller/cash-arqueo.controller';
 import { CashArqueoService } from '@finance/service/cash-arqueo.service';
 
@@ -11,12 +12,15 @@ const mockService = {
 
 const currentUser = { userId: 10 };
 
+const mockI18n = { t: jest.fn((key: string) => key) };
+
 describe('CashArqueoController', () => {
   let controller: CashArqueoController;
 
   beforeEach(() => {
     controller = new CashArqueoController(
       mockService as unknown as CashArqueoService,
+      mockI18n as never,
     );
     jest.clearAllMocks();
   });
@@ -25,6 +29,20 @@ describe('CashArqueoController', () => {
     mockService.getReconciliation.mockResolvedValue({ expected_amount: 0 });
     await controller.reconciliation(10, '2026-08', currentUser as never);
     expect(mockService.getReconciliation).toHaveBeenCalledWith(10, '2026-08');
+  });
+
+  it('reconciliation lanza BadRequestException si el mes falta', async () => {
+    await expect(
+      controller.reconciliation(10, '', currentUser as never),
+    ).rejects.toThrow(BadRequestException);
+    expect(mockService.getReconciliation).not.toHaveBeenCalled();
+  });
+
+  it('reconciliation lanza BadRequestException si el mes tiene formato inválido', async () => {
+    await expect(
+      controller.reconciliation(10, '2026/08', currentUser as never),
+    ).rejects.toThrow(BadRequestException);
+    expect(mockService.getReconciliation).not.toHaveBeenCalled();
   });
 
   it('create delega', async () => {

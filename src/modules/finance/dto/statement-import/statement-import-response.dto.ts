@@ -98,11 +98,3 @@ export class StatementImportResponseDto {
   @ApiProperty({ type: [StatementImportFileResponseDto] })
   files!: StatementImportFileResponseDto[];
 }
-
-export class StatementImportListResponseDto {
-  @ApiProperty({ type: [StatementImportResponseDto] })
-  data!: StatementImportResponseDto[];
-
-  @ApiProperty({ example: 7 })
-  total!: number;
-}

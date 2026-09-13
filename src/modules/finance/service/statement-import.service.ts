@@ -43,6 +43,8 @@ const SINCE_DATE = new Date(2020, 0, 1);
 export interface StatementImportJobOptions {
   default_category_id?: number;
   account_id?: number;
+  liability_id?: number;
+  currency?: string;
   skip_duplicates: boolean;
   default_type?: TransactionTypeEnum;
   assign_categories?: boolean;
@@ -50,10 +52,7 @@ export interface StatementImportJobOptions {
   default_company_id?: number;
 }
 
-export interface StatementImportProgressPayload extends Record<
-  string,
-  unknown
-> {
+interface StatementImportProgressPayload extends Record<string, unknown> {
   id: number;
   status: StatementImportStatusEnum;
   total_files: number;
@@ -527,6 +526,8 @@ export class StatementImportService {
         categoryId,
         options.account_id,
         companyId,
+        options.currency,
+        options.liability_id,
       );
       // Si no hay categoría explícita ni auto-categorización, la transacción
       // queda pendiente por editar.
@@ -572,16 +573,20 @@ export class StatementImportService {
     categoryId: number | null,
     accountId?: number,
     companyId?: number,
+    currency?: string,
+    liabilityId?: number,
   ): CreateTransactionRecordDto {
     const dto: CreateTransactionRecordDto = {
       type: tx.type,
       amount: tx.amount,
+      currency: currency ?? 'COP',
       description: tx.description,
       transaction_date: tx.transaction_date,
       source: 'import',
     };
     if (categoryId != null) dto.category_id = categoryId;
     if (accountId) dto.account_id = accountId;
+    if (liabilityId) dto.liability_id = liabilityId;
     if (companyId) dto.company_id = companyId;
     if (tx.reference) dto.reference_code = tx.reference;
     if (tx.installments !== undefined) dto.installments = tx.installments;

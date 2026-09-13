@@ -21,6 +21,7 @@ import {
   ApiConflictResponse,
   ApiInternalServerErrorResponse,
   ApiQuery,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { AuthGuard } from '@auth/guards/auth.guard';
 import { OwnershipGuard } from '@auth/guards/ownership.guard';
@@ -36,6 +37,7 @@ import { ErrorResponseDto } from '@shared/dto/error-response.dto';
 @ApiTags('catalog')
 @UseGuards(AuthGuard, OwnershipGuard)
 @ApiIntrospectGuardResponse()
+@ApiBearerAuth('bearer')
 @Controller('users/:userId/catalog/subcategories')
 export class SubcategoryController {
   constructor(private readonly subcategoryService: SubcategoryService) {}

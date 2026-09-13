@@ -157,7 +157,7 @@ describe('KeycloakAdminService', () => {
         }),
       };
       const loggerSpy = jest
-        .spyOn(Logger.prototype, 'log')
+        .spyOn(Logger.prototype, 'debug')
         .mockImplementation(() => undefined);
       const localModule = await Test.createTestingModule({
         providers: [
@@ -179,7 +179,7 @@ describe('KeycloakAdminService', () => {
         localService as unknown as KeycloakAdminServiceUnderTest
       ).getAdminToken();
       expect(loggerSpy).toHaveBeenCalledWith(
-        expect.stringContaining('UNDEFINED'),
+        expect.stringContaining('my-nestjs-app'),
       );
       loggerSpy.mockRestore();
     });

@@ -1,6 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import { BankAccountController } from '@banking/controller/bank-account.controller';
 import { BankAccountService } from '@banking/service/bank-account.service';
+import { InterestAccrualScheduler } from '@banking/service/interest-accrual.scheduler';
 import { CreateBankAccountDto } from '@banking/dto/bank-account/create-bank-account.dto';
 import { UpdateBankAccountDto } from '@banking/dto/bank-account/update-bank-account.dto';
 import { IntrospectResponse } from '@auth/interfaces/IntrospectResponse.dto';
@@ -12,6 +13,10 @@ const mockBankAccountService = {
   update: jest.fn(),
   remove: jest.fn(),
   getProjectedYield: jest.fn(),
+};
+
+const mockInterestAccrualScheduler = {
+  triggerManual: jest.fn(),
 };
 
 const buildAccount = (overrides = {}) => ({
@@ -35,6 +40,7 @@ describe('BankAccountController', () => {
   beforeEach(() => {
     controller = new BankAccountController(
       mockBankAccountService as unknown as BankAccountService,
+      mockInterestAccrualScheduler as unknown as InterestAccrualScheduler,
     );
     jest.clearAllMocks();
   });
@@ -163,6 +169,21 @@ describe('BankAccountController', () => {
         10,
       );
       expect(result).toEqual(projection);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // accrueInterest
+  // ─────────────────────────────────────────────────────────────
+  describe('accrueInterest', () => {
+    it('debe delegar la capitalización manual al scheduler', async () => {
+      const summary = { processed: 3, skipped: 0 };
+      mockInterestAccrualScheduler.triggerManual.mockResolvedValue(summary);
+
+      const result = await controller.accrueInterest(10, currentUser);
+
+      expect(mockInterestAccrualScheduler.triggerManual).toHaveBeenCalled();
+      expect(result).toEqual(summary);
     });
   });
 });

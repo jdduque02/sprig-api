@@ -33,6 +33,7 @@ const defaultConfigGet = (key: string): string | undefined => {
     KEYCLOAK_REALM: 'master',
     KEYCLOAK_CLIENT_ID: 'my-nestjs-app',
     KEYCLOAK_SECRET: 'test-secret',
+    OTP_SECRET: 'test-secret',
   };
   return config[key];
 };
@@ -331,6 +332,38 @@ describe('AuthService', () => {
       await expect(service.refresh({})).rejects.toThrow(UnauthorizedException);
       expect(mockHttpService.post).not.toHaveBeenCalled();
     });
+
+    it('debe decodificar el access_token y setear userId cuando trae preferred_username', async () => {
+      const payload = Buffer.from(
+        JSON.stringify({ preferred_username: 'jose.duque' }),
+      ).toString('base64url');
+      const tokenResponse = {
+        access_token: `header.${payload}.signature`,
+        refresh_token: 'new-refresh',
+      };
+      mockHttpService.post.mockReturnValue(of(axiosResponse(tokenResponse)));
+      mockUserRepository.findByUsername.mockResolvedValue({ id: '123' });
+
+      const result = await service.refresh(dto);
+
+      expect(mockUserRepository.findByUsername).toHaveBeenCalledWith(
+        'jose.duque',
+      );
+      expect(result.userId).toBe(123);
+    });
+
+    it('debe ignorar silenciosamente un access_token con payload JWT inválido', async () => {
+      const tokenResponse = {
+        access_token: 'header.not-valid-base64-json.signature',
+        refresh_token: 'new-refresh',
+      };
+      mockHttpService.post.mockReturnValue(of(axiosResponse(tokenResponse)));
+
+      const result = await service.refresh(dto);
+
+      expect(mockUserRepository.findByUsername).not.toHaveBeenCalled();
+      expect(result.userId).toBeUndefined();
+    });
   });
 
   // ─────────────────────────────────────────────────────────────
@@ -438,6 +471,16 @@ describe('AuthService', () => {
       expect(result.username).toBe('testuser');
       expect(result.email).toBe('test@test.com');
       expect(result.expires_in_seconds).toBeGreaterThan(0);
+    });
+
+    it('debe incluir el locale del app_user para que UserLocaleResolver lo use', async () => {
+      mockUserRepository.findByUsername.mockResolvedValue({
+        id: '123',
+        locale: 'en-US',
+      });
+      mockHttpService.post.mockReturnValue(of(axiosResponse(activeTokenData)));
+      const result = await service.introspect('valid-token');
+      expect(result.locale).toBe('en-US');
     });
 
     it('debe lanzar UnauthorizedException si active=false', async () => {
@@ -704,25 +747,17 @@ describe('AuthService', () => {
       ).resolves.toBeUndefined();
     });
 
-    it('debe usar el secreto por defecto sin OTP_SECRET ni KEYCLOAK_SECRET', async () => {
+    it('debe lanzar Error si falta OTP_SECRET', async () => {
       mockConfigService.get.mockImplementation((key: string) =>
-        key === 'KEYCLOAK_SECRET' ? undefined : defaultConfigGet(key),
+        key === 'OTP_SECRET' ? undefined : defaultConfigGet(key),
       );
-      mockUserRepository.findById.mockResolvedValue({
-        id: '7',
-        external_id: 'kc-id',
-      });
-      const payload = `7.${future}`;
-      const sig = createHmac('sha256', 'cost-manager-reset-default-secret')
-        .update(payload)
-        .digest('hex');
       await expect(
         service.resetPassword(
           'user@test.com',
-          `${payload}.${sig}`,
+          `${7}.${future}.firma-falsa`,
           'Nueva.123',
         ),
-      ).resolves.toBeUndefined();
+      ).rejects.toThrow(Error);
     });
   });
 

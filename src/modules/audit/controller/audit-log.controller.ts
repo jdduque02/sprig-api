@@ -13,12 +13,15 @@ import {
   ApiOperation,
   ApiResponse,
   ApiUnauthorizedResponse,
+  ApiForbiddenResponse,
   ApiInternalServerErrorResponse,
   ApiExtraModels,
   ApiQuery,
   getSchemaPath,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { AuthGuard } from '@auth/guards/auth.guard';
+import { AdminGuard } from '@auth/guards/admin.guard';
 import { ApiIntrospectGuardResponse } from '@auth/decorators/api-introspect-guard-response.decorator';
 import { AuditLogService } from '@audit/service/audit-log.service';
 import { AuditLogQueryDto } from '@audit/dto/audit-log-query.dto';
@@ -26,8 +29,13 @@ import { AuditLogResponseDto } from '@audit/dto/audit-log-response.dto';
 import { ErrorResponseDto } from '@shared/dto/error-response.dto';
 
 @ApiTags('audit')
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, AdminGuard)
 @ApiIntrospectGuardResponse()
+@ApiBearerAuth('bearer')
+@ApiForbiddenResponse({
+  description: 'Requiere rol admin.',
+  type: ErrorResponseDto,
+})
 @Controller('audit')
 export class AuditLogController {
   constructor(private readonly auditLogService: AuditLogService) {}

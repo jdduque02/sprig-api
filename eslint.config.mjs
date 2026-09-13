@@ -40,4 +40,16 @@ export default tseslint.config(
       'eol-last': ['error', 'always'],
     },
   },
+  {
+    // supertest tipa `Response.body` como `any`; los e2e leen ese body
+    // constantemente (`res.body.data`, etc.) y no representan un riesgo real
+    // de tipos (son asserts de test, no lógica de producción).
+    files: ['test/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/require-await': 'off',
+    },
+  },
 );

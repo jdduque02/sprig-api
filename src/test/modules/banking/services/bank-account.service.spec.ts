@@ -14,6 +14,7 @@ const mockBankAccountRepository = {
   >(),
   findAll: jest.fn<Promise<BankAccount[]>, [number]>(),
   findById: jest.fn<Promise<BankAccount>, [number, number]>(),
+  findByIdOrNull: jest.fn<Promise<BankAccount | null>, [number, number]>(),
   update: jest.fn<
     Promise<BankAccount>,
     [number, number, Partial<BankAccount>]
@@ -102,6 +103,15 @@ describe('BankAccountService', () => {
         currency: 'COP',
         annual_interest_rate: null,
         yield_frequency: 'monthly',
+        rate_type: 'EA',
+        interest_enabled: true,
+        last_interest_applied_at: null,
+        interest_start_date: null,
+        term_days: null,
+        start_date: null,
+        maturity_date: null,
+        maturity_action: 'renew',
+        auto_renew: true,
         is_primary: false,
         exempt_4x1000: false,
         created_at: expect.any(Date) as Date,
@@ -187,6 +197,32 @@ describe('BankAccountService', () => {
   });
 
   // ─────────────────────────────────────────────────────────────
+  // findOptional
+  // ─────────────────────────────────────────────────────────────
+  describe('findOptional', () => {
+    it('retorna la entidad cruda sin lanzar si existe', async () => {
+      const account = buildAccount();
+      mockBankAccountRepository.findByIdOrNull.mockResolvedValue(account);
+
+      const result = await service.findOptional(1, 10);
+
+      expect(mockBankAccountRepository.findByIdOrNull).toHaveBeenCalledWith(
+        1,
+        10,
+      );
+      expect(result).toEqual(account);
+    });
+
+    it('retorna null si no existe o no pertenece al usuario', async () => {
+      mockBankAccountRepository.findByIdOrNull.mockResolvedValue(null);
+
+      const result = await service.findOptional(999, 10);
+
+      expect(result).toBeNull();
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
   // update
   // ─────────────────────────────────────────────────────────────
   describe('update', () => {
@@ -246,6 +282,62 @@ describe('BankAccountService', () => {
       expect(partial.annual_interest_rate).toBe(6.5);
       expect(partial.yield_frequency).toBe('daily');
     });
+
+    it('debe incluir rate_type, interest_enabled e interest_start_date cuando se proveen', async () => {
+      const dto: UpdateBankAccountDto = {
+        rate_type: 'nominal',
+        interest_enabled: false,
+        interest_start_date: '2026-01-01',
+      };
+      mockBankAccountRepository.update.mockResolvedValue(buildAccount());
+
+      await service.update(1, 10, dto);
+
+      const [, , partial] = mockBankAccountRepository.update.mock.calls[0];
+      expect(partial.rate_type).toBe('nominal');
+      expect(partial.interest_enabled).toBe(false);
+      expect(partial.interest_start_date).toBe('2026-01-01');
+    });
+
+    it('debe incluir term_days y calcular maturity_date a partir de start_date', async () => {
+      const dto: UpdateBankAccountDto = {
+        term_days: 90,
+        start_date: '2026-01-01',
+      };
+      mockBankAccountRepository.update.mockResolvedValue(buildAccount());
+
+      await service.update(1, 10, dto);
+
+      const [, , partial] = mockBankAccountRepository.update.mock.calls[0];
+      expect(partial.term_days).toBe(90);
+      expect(partial.start_date).toBe('2026-01-01');
+      expect(partial.maturity_date).toBe('2026-04-01');
+    });
+
+    it('debe incluir start_date sin calcular maturity_date si no hay term_days', async () => {
+      const dto: UpdateBankAccountDto = { start_date: '2026-01-01' };
+      mockBankAccountRepository.update.mockResolvedValue(buildAccount());
+
+      await service.update(1, 10, dto);
+
+      const [, , partial] = mockBankAccountRepository.update.mock.calls[0];
+      expect(partial.start_date).toBe('2026-01-01');
+      expect(partial.maturity_date).toBeUndefined();
+    });
+
+    it('debe incluir maturity_action y auto_renew cuando se proveen', async () => {
+      const dto: UpdateBankAccountDto = {
+        maturity_action: 'liquidate',
+        auto_renew: false,
+      };
+      mockBankAccountRepository.update.mockResolvedValue(buildAccount());
+
+      await service.update(1, 10, dto);
+
+      const [, , partial] = mockBankAccountRepository.update.mock.calls[0];
+      expect(partial.maturity_action).toBe('liquidate');
+      expect(partial.auto_renew).toBe(false);
+    });
   });
 
   // ─────────────────────────────────────────────────────────────
@@ -283,7 +375,9 @@ describe('BankAccountService', () => {
       expect(result.current_balance).toBe(1000000);
       expect(result.annual_rate).toBe(12);
       expect(result.yield_frequency).toBe('monthly');
-      expect(result.projected['1y']).toBeCloseTo(1126825.03, 2);
+      // rate_type por defecto es 'EA' (Efectiva Anual): tras 12 periodos
+      // mensuales el factor compuesto vuelve exactamente a la tasa anual.
+      expect(result.projected['1y']).toBeCloseTo(1120000, 2);
       expect(result.projected['10y']).toBeGreaterThan(1000000);
     });
 

@@ -1,0 +1,32 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts", "tsx"],
+  "rootDir": "..",
+  "testEnvironment": "node",
+  "testRegex": ".e2e-spec.ts$",
+  "transform": {
+    "^.+\\.(t|j)sx?$": ["ts-jest", { "tsconfig": "<rootDir>/test/tsconfig.e2e.json" }]
+  },
+  "moduleNameMapper": {
+    "^@react-pdf/renderer$": "<rootDir>/test/utils/mocks/react-pdf-renderer.mock.ts",
+    "^@react-email/render$": "<rootDir>/test/utils/mocks/react-email-render.mock.ts",
+    "^@identity/(.*)$": "<rootDir>/src/modules/identity/$1",
+    "^@auth/(.*)$": "<rootDir>/src/modules/auth/$1",
+    "^@shared/(.*)$": "<rootDir>/src/shared/$1",
+    "^@config/(.*)$": "<rootDir>/src/config/$1",
+    "^@audit/(.*)$": "<rootDir>/src/modules/audit/$1",
+    "^@banking/(.*)$": "<rootDir>/src/modules/banking/$1",
+    "^@catalog/(.*)$": "<rootDir>/src/modules/catalog/$1",
+    "^@finance/(.*)$": "<rootDir>/src/modules/finance/$1",
+    "^@notification/(.*)$": "<rootDir>/src/modules/notification/$1",
+    "^@mail/(.*)$": "<rootDir>/src/modules/mail/$1",
+    "^@news/(.*)$": "<rootDir>/src/modules/news/$1",
+    "^@intelligence/(.*)$": "<rootDir>/src/modules/intelligence/$1",
+    "^@support/(.*)$": "<rootDir>/src/modules/support/$1",
+    "^@admin/(.*)$": "<rootDir>/src/modules/admin/$1",
+    "^@/(.*)$": "<rootDir>/src/$1"
+  },
+  "transformIgnorePatterns": [],
+  "setupFiles": ["dotenv/config", "<rootDir>/test/utils/env-setup.ts"],
+  "testTimeout": 30000,
+  "forceExit": true
+}

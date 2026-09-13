@@ -2,17 +2,22 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { FrequencyEnum } from '@shared/enums';
 
 export class CalculateQuotaResponseDto {
-  @ApiProperty({ description: 'Monto objetivo de la meta.', example: 10000000 })
-  target_amount!: number;
+  @ApiPropertyOptional({
+    description: 'Monto objetivo de la meta.',
+    example: 10000000,
+    nullable: true,
+  })
+  target_amount!: number | null;
 
   @ApiProperty({ description: 'Saldo actual ahorrado.', example: 0 })
   current_balance!: number;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Monto restante por ahorrar.',
     example: 10000000,
+    nullable: true,
   })
-  amount_to_save!: number;
+  amount_to_save!: number | null;
 
   @ApiProperty({
     description: 'Fecha de inicio del plan.',

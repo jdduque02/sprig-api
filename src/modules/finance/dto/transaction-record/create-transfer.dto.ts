@@ -1,6 +1,7 @@
 import {
   IsBoolean,
   IsDateString,
+  IsEnum,
   IsInt,
   IsNumber,
   IsOptional,
@@ -14,23 +15,28 @@ import {
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
+import { FixedTypeEnum, FrequencyEnum } from '@shared/enums';
 
-@ValidatorConstraint({ name: 'distinctTransferAccounts', async: false })
-export class DistinctTransferAccountsConstraint implements ValidatorConstraintInterface {
+@ValidatorConstraint({ name: 'distinctTransferEntities', async: false })
+class DistinctTransferEntitiesConstraint implements ValidatorConstraintInterface {
   validate(_value: unknown, args: ValidationArguments): boolean {
     const obj = args.object as {
       source_account_id?: number;
       destination_account_id?: number;
+      destination_liability_id?: number;
     };
-    return (
-      obj.source_account_id !== undefined &&
+    if (!obj.source_account_id) return false;
+    const hasDestAccount =
       obj.destination_account_id !== undefined &&
-      obj.source_account_id !== obj.destination_account_id
-    );
+      obj.destination_account_id !== null;
+    const hasDestLiability =
+      obj.destination_liability_id !== undefined &&
+      obj.destination_liability_id !== null;
+    return hasDestAccount !== hasDestLiability;
   }
 
   defaultMessage(): string {
-    return 'La cuenta de origen y la de destino deben ser diferentes.';
+    return 'Se requiere exactamente uno de destination_account_id o destination_liability_id.';
   }
 }
 
@@ -38,7 +44,7 @@ const ValidateClassDecorator = Validate as unknown as (
   constraint: unknown,
 ) => ClassDecorator;
 
-@ValidateClassDecorator(DistinctTransferAccountsConstraint)
+@ValidateClassDecorator(DistinctTransferEntitiesConstraint)
 export class CreateTransferDto {
   @ApiProperty({
     description: 'ID de la cuenta bancaria de origen (se debita).',
@@ -49,14 +55,25 @@ export class CreateTransferDto {
   @Min(1)
   source_account_id!: number;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'ID de la cuenta bancaria de destino (se acredita).',
     example: 2,
   })
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  destination_account_id!: number;
+  destination_account_id?: number;
+
+  @ApiPropertyOptional({
+    description: 'ID del pasivo financiero de destino (tarjeta de crédito).',
+    example: 3,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  destination_liability_id?: number;
 
   @ApiProperty({ description: 'Monto del movimiento.', example: 250000 })
   @Type(() => Number)
@@ -120,4 +137,41 @@ export class CreateTransferDto {
   @IsInt()
   @Min(1)
   company_id?: number;
+
+  @ApiPropertyOptional({
+    description: 'Tipo de movimiento fijo (deducción o ingreso fijo).',
+    enum: FixedTypeEnum,
+  })
+  @IsOptional()
+  @IsEnum(FixedTypeEnum)
+  fixed_type?: FixedTypeEnum;
+
+  @ApiPropertyOptional({
+    description: 'Frecuencia del movimiento fijo.',
+    enum: FrequencyEnum,
+  })
+  @IsOptional()
+  @IsEnum(FrequencyEnum)
+  frequency?: FrequencyEnum;
+
+  @ApiPropertyOptional({
+    description: 'Día del mes en que vence el movimiento fijo.',
+    example: 15,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @MaxLength(31)
+  due_day?: number;
+
+  @ApiPropertyOptional({
+    description: 'Días de anticipación para el recordatorio.',
+    example: 3,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  reminder_days?: number;
 }

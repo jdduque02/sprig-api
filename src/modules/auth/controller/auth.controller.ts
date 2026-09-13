@@ -27,6 +27,7 @@ import {
   ApiInternalServerErrorResponse,
   ApiExtraModels,
   getSchemaPath,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { ApiIntrospectGuardResponse } from '@auth/decorators/api-introspect-guard-response.decorator';
 import { BearerToken } from '@auth/decorators/bearer-token.decorator';
@@ -119,6 +120,7 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @UseGuards(IpBlockGuard)
   @Throttle({ auth: { limit: 20, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Renovar sesión con refresh token' })
@@ -150,6 +152,7 @@ export class AuthController {
   }
 
   @Post('logout')
+  @Throttle({ auth: { limit: 10, ttl: 60_000 } })
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Cerrar sesión y revocar tokens' })
   @ApiNoContentResponse({
@@ -277,6 +280,7 @@ export class AuthController {
   }
 
   @Post('introspect')
+  @Throttle({ auth: { limit: 30, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verificar vigencia del access_token de sesión' })
   @ApiIntrospectGuardResponse()
@@ -286,6 +290,7 @@ export class AuthController {
 
   @Post('change-password')
   @UseGuards(AuthGuard)
+  @ApiBearerAuth('bearer')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Cambiar contraseña del usuario autenticado' })
   @ApiResponse({
@@ -311,6 +316,7 @@ export class AuthController {
   @Get('sessions')
   @UseGuards(AuthGuard)
   @ApiIntrospectGuardResponse()
+  @ApiBearerAuth('bearer')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Listar sesiones activas del usuario' })
   @ApiResponse({
@@ -329,6 +335,7 @@ export class AuthController {
   @Delete('sessions/:sessionId')
   @UseGuards(AuthGuard)
   @ApiIntrospectGuardResponse()
+  @ApiBearerAuth('bearer')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Revocar una sesión específica' })
   @ApiNoContentResponse({
@@ -348,6 +355,7 @@ export class AuthController {
   @Get('access-history')
   @UseGuards(AuthGuard)
   @ApiIntrospectGuardResponse()
+  @ApiBearerAuth('bearer')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Obtener historial de accesos del usuario' })
   @ApiResponse({
@@ -383,7 +391,10 @@ export class AuthController {
     type: ErrorResponseDto,
   })
   encryptPassword(@Body() dto: EncryptPasswordDto) {
-    const encryptEnabled = this.configService.get<string>('AUTH_ENCRYPT_ENABLED', 'true');
+    const encryptEnabled = this.configService.get<string>(
+      'AUTH_ENCRYPT_ENABLED',
+      'true',
+    );
     if (encryptEnabled !== 'true') {
       throw new ForbiddenException(this.i18n.t('auth.ENCRYPT_DISABLED'));
     }

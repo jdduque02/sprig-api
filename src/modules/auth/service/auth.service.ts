@@ -271,7 +271,7 @@ export class AuthService {
     const expiresAt = new Date(Date.now() + OTP_TTL_MS);
 
     this.logger.log(
-      `[forgotPassword] code=${code} codeHash=${codeHash} userId=${user.id} email=${email}`,
+      `[forgotPassword] codeHash=${codeHash} userId=${user.id} email=${email}`,
     );
 
     // Invalida códigos previos no consumidos del mismo usuario.
@@ -300,7 +300,7 @@ export class AuthService {
     email: string,
     code: string,
   ): Promise<{ reset_token: string; expires_in_seconds: number }> {
-    this.logger.log(`[verifyOtp] email=${email} code=${code}`);
+    this.logger.log(`[verifyOtp] email=${email}`);
     const user = await this.findUserByEmail(email);
     this.logger.log(
       `[verifyOtp] userId=${user.id} external_id=${user.external_id}`,
@@ -320,9 +320,6 @@ export class AuthService {
     );
 
     const expectedHash = createHash('sha256').update(code).digest('hex');
-    this.logger.log(
-      `[verifyOtp] expectedHash=${expectedHash} storedHash=${otp?.code_hash}`,
-    );
     const matches = otp ? this.safeEqual(expectedHash, otp.code_hash) : false;
     this.logger.log(`[verifyOtp] matches=${matches}`);
     if (!otp || !matches) {
@@ -394,11 +391,11 @@ export class AuthService {
   // ── Token de reset (HMAC) ──────────────────────────────────
 
   private get resetSecret(): string {
-    return (
-      this.configService.get<string>('OTP_SECRET') ??
-      this.configService.get<string>('KEYCLOAK_SECRET') ??
-      'cost-manager-reset-default-secret'
-    );
+    const secret = this.configService.get<string>('OTP_SECRET');
+    if (!secret) {
+      throw new Error('OTP_SECRET debe definirse para firmar tokens de reset.');
+    }
+    return secret;
   }
 
   private signResetToken(userId: number, expiresAt: number): string {
@@ -425,7 +422,7 @@ export class AuthService {
     }
     const expiresAt = Number(expiresAtStr);
     if (!Number.isFinite(expiresAt) || expiresAt < Date.now()) {
-      throw new BadRequestException(this.i18n.t('auth.RESET_TOKEN_EXPIRED'));
+      throw new BadRequestException(this.i18n.t('auth.RESET_TOKEN_INVALID'));
     }
     const userId = Number(userIdStr);
     if (!Number.isInteger(userId) || userId <= 0) {
@@ -518,6 +515,7 @@ export class AuthService {
         : undefined,
       expires_in_seconds: expiresInSeconds,
       userId: Number.parseInt(user.id, 10),
+      locale: user.locale,
     };
   }
 

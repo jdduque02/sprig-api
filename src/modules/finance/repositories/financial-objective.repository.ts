@@ -5,7 +5,7 @@ import { IsNull, Repository } from 'typeorm';
 import { FinancialObjective } from '@finance/entities/financial-objective.entity';
 import { CreateFinancialObjectiveDto } from '@finance/dto/financial-objective/create-financial-objective.dto';
 import { UpdateFinancialObjectiveDto } from '@finance/dto/financial-objective/update-financial-objective.dto';
-import { BankAccount } from '@banking/entities/bank-account.entity';
+import { BankAccountService } from '@banking/service/bank-account.service';
 import { EncryptionService } from '@shared/services/encryption.service';
 import {
   applyCompletion,
@@ -22,8 +22,7 @@ export class FinancialObjectiveRepository {
   constructor(
     @InjectRepository(FinancialObjective)
     private readonly repo: Repository<FinancialObjective>,
-    @InjectRepository(BankAccount)
-    private readonly bankAccountRepo: Repository<BankAccount>,
+    private readonly bankAccountService: BankAccountService,
     @Inject(I18nService) private readonly i18n: I18nService,
     private readonly encryptionService: EncryptionService,
   ) {}
@@ -123,9 +122,10 @@ export class FinancialObjectiveRepository {
     const accountId = payload.account_id;
     if (accountId === undefined || accountId === null) return payload;
 
-    const account = await this.bankAccountRepo.findOne({
-      where: { id: Number(accountId), user_id: userId, deleted_at: IsNull() },
-    });
+    const account = await this.bankAccountService.findOptional(
+      Number(accountId),
+      userId,
+    );
     if (!account) return payload;
 
     if (payload.bank === undefined || payload.bank === null) {
@@ -153,9 +153,10 @@ export class FinancialObjectiveRepository {
     bank: string | null;
     annual_interest_rate: number | null;
   } | null> {
-    const account = await this.bankAccountRepo.findOne({
-      where: { id: accountId, user_id: userId, deleted_at: IsNull() },
-    });
+    const account = await this.bankAccountService.findOptional(
+      accountId,
+      userId,
+    );
     if (!account) return null;
     return {
       bank: account.bank_name ?? null,

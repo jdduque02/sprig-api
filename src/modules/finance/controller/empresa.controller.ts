@@ -20,6 +20,7 @@ import {
   ApiInternalServerErrorResponse,
   getSchemaPath,
   ApiExtraModels,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { AuthGuard } from '@auth/guards/auth.guard';
 import { OwnershipGuard } from '@auth/guards/ownership.guard';
@@ -36,6 +37,7 @@ import { ErrorResponseDto } from '@shared/dto/error-response.dto';
 @UseGuards(AuthGuard, OwnershipGuard)
 @ApiIntrospectGuardResponse()
 @ApiExtraModels(EmpresaResponseDto)
+@ApiBearerAuth('bearer')
 @Controller('users/:userId/empresas')
 export class EmpresaController {
   constructor(private readonly empresaService: EmpresaService) {}

@@ -1,17 +1,24 @@
-import 'reflect-metadata';
+import { config } from 'dotenv';
+import { resolve } from 'path';
 import { DataSource } from 'typeorm';
-import * as dotenv from 'dotenv';
 
-dotenv.config();
+config({ path: resolve(__dirname, '../../.env') });
 
-export const AppDataSource = new DataSource({
+const isProd =
+  process.env.NODE_ENV === 'PROD' ||
+  process.env.NODE_ENV === 'DEPLOY' ||
+  process.env.NODE_ENV === 'production';
+
+export default new DataSource({
   type: 'postgres',
   host: process.env.DB_HOST,
   port: Number(process.env.DB_PORT),
   username: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  entities: [__dirname + '/../../src/**/*.entity.{js,ts}'],
-  migrations: [__dirname + '/../../migrations/*.{js,ts}'],
+  entities: [__dirname + '/**/*.entity.{js,ts}'],
+  migrations: [resolve(__dirname, '../../migrations/*.{js,ts}')],
   synchronize: false,
+  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+  logging: isProd ? ['error', 'warn'] : ['error', 'warn', 'migration'],
 });

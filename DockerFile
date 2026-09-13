@@ -3,23 +3,21 @@
 # =========================
 FROM node:22-alpine AS builder
 
-# Crear directorio de trabajo
 WORKDIR /app
 
-# Instalar dependencias del sistema necesarias (opcional)
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat && corepack enable
 
-# Copiar archivos de dependencias
-COPY package*.json ./
+# Copiar archivos de dependencias primero (cache de capas)
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-# Instalar dependencias (incluye devDependencies para build)
-RUN npm ci
+# Instalar dependencias (incluye devDependencies, necesarias para build y migraciones)
+RUN pnpm install --frozen-lockfile
 
 # Copiar el resto del proyecto
 COPY . .
 
-# Compilar la app
-RUN npm run build
+# Compilar la app (nest build -> dist/src/main.js)
+RUN pnpm run build
 
 # =========================
 # 2. Production stage
@@ -28,28 +26,26 @@ FROM node:22-alpine AS deploy
 
 WORKDIR /app
 
-# Variables de entorno
-ENV NODE_ENV=DEPLOY
+RUN corepack enable
+
+# NODE_ENV se define vía docker-compose/.env según el entorno (STAGE, PROD, etc.)
 
 # Crear usuario no root (seguridad)
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 # Copiar solo lo necesario desde builder
-COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/package.json /app/pnpm-lock.yaml /app/pnpm-workspace.yaml ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/public ./public
 
 # Remover devDependencies
-RUN npm prune --omit=dev
+RUN pnpm prune --prod
 
-# Cambiar ownership
 RUN chown -R appuser:appgroup /app
 
-# Usar usuario no root
 USER appuser
 
-# Exponer puerto (ajusta si usas otro)
 EXPOSE 3000
 
-# Comando de inicio
 CMD ["node", "dist/main.js"]

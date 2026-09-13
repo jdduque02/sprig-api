@@ -12,14 +12,16 @@ import { Type } from 'class-transformer';
 import { FrequencyEnum } from '@shared/enums';
 
 export class CalculateQuotaDto {
-  @ApiProperty({
-    description: 'Monto objetivo de la meta de ahorro.',
+  @ApiPropertyOptional({
+    description:
+      'Monto objetivo de la meta de ahorro. Opcional para metas abiertas (sin monto ni fecha).',
     example: 10000000,
   })
+  @IsOptional()
   @Type(() => Number)
   @IsNumber()
   @Min(0.01)
-  target_amount!: number;
+  target_amount?: number;
 
   @ApiPropertyOptional({
     description: 'Saldo actual ya ahorrado hacia esta meta.',

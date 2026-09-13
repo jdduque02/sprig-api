@@ -3,12 +3,19 @@ import { ConflictException, NotFoundException } from '@nestjs/common';
 import { FinancialPeriodService } from '@finance/service/financial-period.service';
 import { FinancialPeriodRepository } from '@finance/repositories/financial-period.repository';
 import { CreateFinancialPeriodDto } from '@finance/dto/financial-period/create-financial-period.dto';
+import { UserRepository } from '@identity/repositories/app-user.repositories';
+import { todayInTimeZone } from '@shared/helpers/financial-objective.helper';
 
 const mockFinancialPeriodRepository = {
   create: jest.fn(),
   findAll: jest.fn(),
   findById: jest.fn(),
   close: jest.fn(),
+  findOrCreateCurrent: jest.fn(),
+};
+
+const mockUserRepository = {
+  findById: jest.fn(),
 };
 
 const buildPeriod = (overrides = {}) => ({
@@ -31,6 +38,7 @@ describe('FinancialPeriodService', () => {
           provide: FinancialPeriodRepository,
           useValue: mockFinancialPeriodRepository,
         },
+        { provide: UserRepository, useValue: mockUserRepository },
       ],
     }).compile();
 
@@ -116,6 +124,72 @@ describe('FinancialPeriodService', () => {
       );
 
       await expect(service.close(1, 10)).rejects.toThrow(ConflictException);
+    });
+  });
+
+  describe('findOrCreateCurrent', () => {
+    it('debe usar la zona horaria del usuario para resolver año/mes', async () => {
+      const period = buildPeriod();
+      mockUserRepository.findById.mockResolvedValue({
+        timezone: 'America/Bogota',
+      });
+      mockFinancialPeriodRepository.findOrCreateCurrent.mockResolvedValue(
+        period,
+      );
+
+      const result = await service.findOrCreateCurrent(10);
+
+      const today = todayInTimeZone('America/Bogota');
+      const [year, month] = today.split('-').map(Number);
+      expect(mockUserRepository.findById).toHaveBeenCalledWith('10');
+      expect(
+        mockFinancialPeriodRepository.findOrCreateCurrent,
+      ).toHaveBeenCalledWith(10, year, month);
+      expect(result).toEqual(period);
+    });
+
+    it('debe usar la zona horaria por defecto si el usuario no tiene timezone configurado', async () => {
+      const period = buildPeriod();
+      mockUserRepository.findById.mockResolvedValue({ timezone: null });
+      mockFinancialPeriodRepository.findOrCreateCurrent.mockResolvedValue(
+        period,
+      );
+
+      const result = await service.findOrCreateCurrent(10);
+
+      const today = todayInTimeZone('America/Bogota');
+      const [year, month] = today.split('-').map(Number);
+      expect(
+        mockFinancialPeriodRepository.findOrCreateCurrent,
+      ).toHaveBeenCalledWith(10, year, month);
+      expect(result).toEqual(period);
+    });
+
+    it('debe usar la zona horaria por defecto si el usuario no existe', async () => {
+      const period = buildPeriod();
+      mockUserRepository.findById.mockRejectedValue(new NotFoundException());
+      mockFinancialPeriodRepository.findOrCreateCurrent.mockResolvedValue(
+        period,
+      );
+
+      const result = await service.findOrCreateCurrent(10);
+
+      const today = todayInTimeZone('America/Bogota');
+      const [year, month] = today.split('-').map(Number);
+      expect(
+        mockFinancialPeriodRepository.findOrCreateCurrent,
+      ).toHaveBeenCalledWith(10, year, month);
+      expect(result).toEqual(period);
+    });
+
+    it('propaga (sin enmascarar) un error que no sea NotFoundException al resolver el usuario', async () => {
+      const infraError = new Error('conexión a la base de datos perdida');
+      mockUserRepository.findById.mockRejectedValue(infraError);
+
+      await expect(service.findOrCreateCurrent(10)).rejects.toThrow(infraError);
+      expect(
+        mockFinancialPeriodRepository.findOrCreateCurrent,
+      ).not.toHaveBeenCalled();
     });
   });
 });

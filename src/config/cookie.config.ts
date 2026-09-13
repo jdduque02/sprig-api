@@ -3,7 +3,6 @@ import type { CookieOptions } from 'express';
 
 export const REFRESH_COOKIE_NAME = 'cm_refresh_token';
 export const ACCESS_COOKIE_NAME = 'cm_access_token';
-export const CSRF_COOKIE_NAME = 'x-csrf-token';
 
 function baseCookieOptions(
   configService: ConfigService,
@@ -29,7 +28,7 @@ export function getRefreshCookieOptions(
   const apiVersion = configService.get<string>('VERSION') ?? '1';
   return baseCookieOptions(
     configService,
-    maxAgeMs ?? 30 * 60 * 1000,
+    maxAgeMs ?? 7 * 24 * 60 * 60 * 1000, // 7 days
     `/api/v${apiVersion}/auth`,
   );
 }

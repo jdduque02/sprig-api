@@ -1,5 +1,4 @@
 import {
-  IsBoolean,
   IsEmail,
   IsNotEmpty,
   IsObject,
@@ -8,11 +7,8 @@ import {
   MaxLength,
   MinLength,
   Matches,
-  ValidateNested,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { CreateFinancialProfileDto } from '@identity/dto/financial-profile/create-financial-profile.dto';
-import { Type } from 'class-transformer';
 
 export class CreateUserDto {
   @ApiProperty({
@@ -35,14 +31,20 @@ export class CreateUserDto {
 
   @ApiProperty({
     description:
-      'Contraseña inicial del usuario (mínimo 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial).',
-    example: 'ContraseñaSegura123!',
+      'Contraseña inicial del usuario (mínimo 8 caracteres, 2 mayúsculas, 2 minúsculas, 2 números y 1 carácter especial).',
+    example: 'Admin123!!',
     minLength: 8,
   })
   @IsString()
   @IsNotEmpty()
   @MinLength(8)
-  @Matches(/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/)
+  @Matches(
+    /(?=(?:.*[A-Z]){2})(?=(?:.*[a-z]){2})(?=(?:.*\d){2})(?=.*[^A-Za-z0-9])(?![.\n]).{8,}/,
+    {
+      message:
+        'La contraseña debe tener mínimo 8 caracteres, 2 mayúsculas, 2 minúsculas, 2 números y 1 carácter especial.',
+    },
+  )
   password!: string;
 
   @ApiPropertyOptional({
@@ -72,15 +74,6 @@ export class CreateUserDto {
   @IsOptional()
   @IsObject()
   metadata?: Record<string, unknown>;
-
-  @ApiPropertyOptional({
-    description: 'Define si el usuario está habilitado para loguearse.',
-    example: true,
-    default: true,
-  })
-  @IsOptional()
-  @IsBoolean()
-  is_active?: boolean;
 
   @ApiPropertyOptional({
     description:
@@ -126,13 +119,4 @@ export class CreateUserDto {
   @IsString()
   @MaxLength(50)
   document_id?: string;
-
-  @ApiPropertyOptional({
-    description: 'Perfil financiero del usuario.',
-    type: CreateFinancialProfileDto,
-  })
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => CreateFinancialProfileDto)
-  financial_profile?: CreateFinancialProfileDto;
 }

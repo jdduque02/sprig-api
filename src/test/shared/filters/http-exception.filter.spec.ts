@@ -1,4 +1,5 @@
 import { ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
+import { I18nService, I18nValidationException } from 'nestjs-i18n';
 import { HttpExceptionFilter } from '@shared/filters/http-exception.filter';
 
 interface FilterResponseBody {
@@ -33,6 +34,7 @@ describe('HttpExceptionFilter', () => {
     };
 
     host = {
+      getType: () => 'http',
       switchToHttp: () => ({
         getResponse: () => response,
         getRequest: () => request,
@@ -127,5 +129,68 @@ describe('HttpExceptionFilter', () => {
       HttpStatus.INTERNAL_SERVER_ERROR,
     );
     expect(body.trace_id).toBe('trace-123');
+  });
+
+  it('debe formatear I18nValidationException con detalles de los errores de validación', () => {
+    const exception = new I18nValidationException([
+      {
+        property: 'email',
+        constraints: { isEmail: 'email must be an email' },
+      },
+      {
+        property: 'password',
+        constraints: { isNotEmpty: 'password should not be empty' },
+      },
+    ] as never);
+
+    filter.catch(exception, host);
+
+    const body = (
+      response.json.mock.calls[0] as unknown[]
+    )[0] as FilterResponseBody & { details: { property: string }[] };
+    expect(response.status).toHaveBeenCalledWith(exception.getStatus());
+    expect(body.error).toBe('I18nValidationException');
+    expect(body.details).toEqual([
+      { property: 'email', constraints: { isEmail: 'email must be an email' } },
+      {
+        property: 'password',
+        constraints: { isNotEmpty: 'password should not be empty' },
+      },
+    ]);
+    expect(body.message).toBe(
+      'Campos con errores de validación: email, password',
+    );
+    expect(body.path).toBe('/user/1/financial-profile');
+  });
+
+  it('debe usar errors=[] cuando I18nValidationException no trae errores', () => {
+    const exception = new I18nValidationException(
+      undefined as unknown as never,
+    );
+
+    filter.catch(exception, host);
+
+    const body = (
+      response.json.mock.calls[0] as unknown[]
+    )[0] as FilterResponseBody;
+    expect(body.details).toEqual([]);
+    expect(body.message).toBe('Campos con errores de validación: ');
+  });
+
+  it('debe usar this.i18n inyectado por constructor cuando I18nContext.current no resuelve nada', () => {
+    const i18n = {
+      t: jest.fn().mockReturnValue('mensaje traducido'),
+    } as unknown as I18nService;
+    const filterWithI18n = new HttpExceptionFilter(i18n);
+    const exception = new HttpException(
+      'Mensaje plano',
+      HttpStatus.BAD_REQUEST,
+    );
+
+    filterWithI18n.catch(exception, host);
+
+    expect(i18n.t).toHaveBeenCalledWith('shared.UNEXPECTED_ERROR', {
+      args: undefined,
+    });
   });
 });

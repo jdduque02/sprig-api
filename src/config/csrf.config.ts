@@ -19,17 +19,8 @@ export function getCsrfProtection(configService: ConfigService) {
      * Secret used to sign the CSRF token.
      * Falls back to a default string when CSRF_SECRET is not set (dev only).
      */
-    getSecret: () => {
-      const secret = configService.get<string>('CSRF_SECRET');
-      const env = configService.get<string>('NODE_ENV', 'LOCAL');
-      const isProd = env === 'PROD' || env === 'DEPLOY' || env === 'production';
-      if (isProd && !secret) {
-        throw new Error(
-          'CSRF_SECRET debe definirse en entornos de producción.',
-        );
-      }
-      return secret ?? 'csrf-super-secret';
-    },
+    getSecret: () =>
+      configService.get<string>('CSRF_SECRET') ?? 'csrf-super-secret',
 
     /** Name of the cookie that holds the CSRF token. */
     cookieName: 'x-csrf-token',
@@ -45,7 +36,9 @@ export function getCsrfProtection(configService: ConfigService) {
        * Mark the cookie as Secure only in production so that HTTPS is enforced.
        * In development (NODE_ENV !== 'PROD') the cookie is sent over plain HTTP as well.
        */
-      secure: configService.get<string>('NODE_ENV') === 'PROD',
+      secure: ['PROD', 'DEPLOY', 'production'].includes(
+        configService.get<string>('NODE_ENV', 'LOCAL'),
+      ),
     },
 
     /**

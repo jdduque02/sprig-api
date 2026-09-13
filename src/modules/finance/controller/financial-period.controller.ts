@@ -18,6 +18,7 @@ import {
   ApiNotFoundResponse,
   ApiConflictResponse,
   ApiInternalServerErrorResponse,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { AuthGuard } from '@auth/guards/auth.guard';
 import { OwnershipGuard } from '@auth/guards/ownership.guard';
@@ -32,6 +33,7 @@ import { ErrorResponseDto } from '@shared/dto/error-response.dto';
 @ApiTags('finance')
 @UseGuards(AuthGuard, OwnershipGuard)
 @ApiIntrospectGuardResponse()
+@ApiBearerAuth('bearer')
 @Controller('users/:userId/financial-periods')
 export class FinancialPeriodController {
   constructor(

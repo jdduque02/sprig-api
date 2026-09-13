@@ -75,4 +75,31 @@ export class FinancialPeriodRepository {
     );
     return saved;
   }
+
+  async findByYearMonth(
+    userId: number,
+    year: number,
+    month: number,
+  ): Promise<FinancialPeriod | null> {
+    return this.repo.findOne({ where: { user_id: userId, year, month } });
+  }
+
+  async findOrCreateCurrent(
+    userId: number,
+    year: number,
+    month: number,
+  ): Promise<FinancialPeriod> {
+    const existing = await this.findByYearMonth(userId, year, month);
+    if (existing) return existing;
+    try {
+      return await this.create(userId, { year, month });
+    } catch (error) {
+      // Concurrent request may have created the period between our check and
+      // this insert (uq_financial_period_user_year_month). Re-fetch instead
+      // of failing the caller with a raw conflict/DB error.
+      const raceWinner = await this.findByYearMonth(userId, year, month);
+      if (raceWinner) return raceWinner;
+      throw error;
+    }
+  }
 }

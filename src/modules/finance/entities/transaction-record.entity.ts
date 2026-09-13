@@ -74,6 +74,9 @@ export class TransactionRecord {
   @Column({ type: 'numeric', precision: 15, scale: 2 })
   amount!: number;
 
+  @Column({ type: 'varchar', length: 3, default: 'COP' })
+  currency!: string;
+
   @Column({ type: 'boolean', default: false })
   is_fixed!: boolean;
 

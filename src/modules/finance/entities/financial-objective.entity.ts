@@ -35,8 +35,8 @@ export class FinancialObjective {
   @Index('idx_financial_objective_type')
   type!: FinancialObjectiveTypeEnum;
 
-  @Column({ type: 'numeric', precision: 15, scale: 2 })
-  target_amount!: number;
+  @Column({ type: 'numeric', precision: 15, scale: 2, nullable: true })
+  target_amount!: number | null;
 
   @Column({ type: 'numeric', precision: 15, scale: 2, default: 0 })
   current_balance!: number;

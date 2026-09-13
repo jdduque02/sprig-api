@@ -86,15 +86,17 @@ describe('ResponseHelper', () => {
       const response = ResponseHelper.notFound('User', 123);
 
       expect(response.status).toBe(HttpStatus.NOT_FOUND);
-      expect(response.message).toBe(
-        "User con identificador '123' no encontrado",
-      );
+      expect(response.message).toBe('shared.RESOURCE_NOT_FOUND_WITH_ID');
       expect(response.body).toEqual({ resource: 'User', identifier: 123 });
     });
 
     it('should format a notFound error without identifier', () => {
       const response = ResponseHelper.notFound('Resource');
-      expect(response.message).toBe('Resource no encontrado');
+      expect(response.message).toBe('shared.RESOURCE_NOT_FOUND');
+      expect(response.body).toEqual({
+        resource: 'Resource',
+        identifier: undefined,
+      });
     });
   });
 

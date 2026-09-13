@@ -11,6 +11,7 @@ const mockCategoryService = {
   findAll: jest.fn(),
   findOne: jest.fn(),
   update: jest.fn(),
+  remove: jest.fn(),
 };
 
 const buildCategory = (overrides = {}) => ({
@@ -120,6 +121,25 @@ describe('CategoryController', () => {
 
       expect(mockCategoryService.update).toHaveBeenCalledWith(1, dto);
       expect(result).toEqual(updated);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // remove
+  // ─────────────────────────────────────────────────────────────
+  describe('remove', () => {
+    it('debe desactivar la categoría delegando al servicio', async () => {
+      mockCategoryService.remove.mockResolvedValue(undefined);
+
+      await controller.remove(1);
+
+      expect(mockCategoryService.remove).toHaveBeenCalledWith(1);
+    });
+
+    it('debe propagar NotFoundException si la categoría no existe', async () => {
+      mockCategoryService.remove.mockRejectedValue(new NotFoundException());
+
+      await expect(controller.remove(999)).rejects.toThrow(NotFoundException);
     });
   });
 });

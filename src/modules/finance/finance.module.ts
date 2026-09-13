@@ -6,6 +6,7 @@ import { AuditModule } from '../audit/audit.module';
 import { NotificationModule } from '../notification/notification.module';
 import { CatalogModule } from '../catalog/catalog.module';
 import { SupportModule } from '../support/support.module';
+import { BankingModule } from '@banking/banking.module';
 import { FinancialObjective } from './entities/financial-objective.entity';
 import { FinancialPeriod } from './entities/financial-period.entity';
 import { TransactionRecord } from './entities/transaction-record.entity';
@@ -16,7 +17,6 @@ import { Empresa } from './entities/empresa.entity';
 import { StatementImport } from './entities/statement-import.entity';
 import { StatementImportFile } from './entities/statement-import-file.entity';
 import { TransactionCategoryRule } from './entities/transaction-category-rule.entity';
-import { BankAccount } from '@banking/entities/bank-account.entity';
 import { FinancialAsset } from '@banking/entities/financial-asset.entity';
 import { FinancialLiability } from '@banking/entities/financial-liability.entity';
 import { FinancialObjectiveController } from './controller/financial-objective.controller';
@@ -57,7 +57,6 @@ import { EmpresaRepository } from './repositories/empresa.repository';
       StatementImport,
       StatementImportFile,
       TransactionCategoryRule,
-      BankAccount,
       FinancialAsset,
       FinancialLiability,
     ]),
@@ -67,6 +66,7 @@ import { EmpresaRepository } from './repositories/empresa.repository';
     NotificationModule,
     CatalogModule,
     SupportModule,
+    BankingModule,
   ],
   controllers: [
     FinancialObjectiveController,

@@ -53,6 +53,8 @@ export class StatementImportRepository {
         options: {
           default_category_id: options.default_category_id,
           account_id: options.account_id,
+          liability_id: options.liability_id,
+          currency: options.currency ?? 'COP',
           skip_duplicates: options.skip_duplicates !== 'false',
           default_type: options.default_type,
           assign_categories: options.assign_categories !== 'false',

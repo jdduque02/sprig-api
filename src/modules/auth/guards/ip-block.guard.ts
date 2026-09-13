@@ -12,9 +12,6 @@ import { I18nService } from 'nestjs-i18n';
 import { IpBlockService } from '@shared/services/ip-block.service';
 
 export const IP_BLOCK_KEY = 'ip_block';
-export const SkipIpBlock = () =>
-  Reflect.defineMetadata(IP_BLOCK_KEY, true, Function);
-
 @Injectable()
 export class IpBlockGuard implements CanActivate {
   private readonly logger = new Logger(IpBlockGuard.name);

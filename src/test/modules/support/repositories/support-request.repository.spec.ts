@@ -108,6 +108,42 @@ describe('SupportRequestRepository', () => {
     });
   });
 
+  describe('findAllAdmin', () => {
+    it('retorna todas las solicitudes no eliminadas de todos los usuarios', async () => {
+      const list = [buildRequest(), buildRequest({ id: 2, user_id: 20 })];
+      mockRepo.find.mockResolvedValue(list);
+
+      const result = await repo.findAllAdmin();
+
+      expect(mockRepo.find).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            deleted_at: expect.anything() as unknown,
+          }) as Record<string, unknown>,
+          order: { created_at: 'DESC' },
+        }),
+      );
+      expect(result).toHaveLength(2);
+    });
+  });
+
+  describe('findByIdAdmin', () => {
+    it('retorna la solicitud sin filtrar por usuario', async () => {
+      const request = buildRequest();
+      mockRepo.findOne.mockResolvedValue(request);
+
+      const result = await repo.findByIdAdmin(1);
+
+      expect(result).toEqual(request);
+    });
+
+    it('lanza NotFoundException si no existe', async () => {
+      mockRepo.findOne.mockResolvedValue(null);
+
+      await expect(repo.findByIdAdmin(999)).rejects.toThrow(NotFoundException);
+    });
+  });
+
   describe('updateAdmin', () => {
     it('actualiza el estado y las notas del admin', async () => {
       const request = buildRequest();

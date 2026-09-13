@@ -20,8 +20,11 @@ export class FinancialObjectiveResponseDto {
   @ApiProperty({ enum: FinancialObjectiveTypeEnum })
   type!: FinancialObjectiveTypeEnum;
 
-  @ApiProperty({ example: 10000000 })
-  target_amount!: number;
+  @ApiPropertyOptional({
+    example: 10000000,
+    nullable: true,
+  })
+  target_amount!: number | null;
 
   @ApiProperty({ example: 0 })
   current_balance!: number;
@@ -66,17 +69,21 @@ export class FinancialObjectiveResponseDto {
   @ApiProperty({ example: false })
   is_completed!: boolean;
 
-  @ApiProperty({
-    description: 'Monto restante por ahorrar (target - current, mínimo 0).',
+  @ApiPropertyOptional({
+    description:
+      'Monto restante por ahorrar (target - current, mínimo 0). null si no hay monto objetivo.',
     example: 9800000,
+    nullable: true,
   })
-  amount_remaining!: number;
+  amount_remaining!: number | null;
 
-  @ApiProperty({
-    description: 'Porcentaje de avance hacia la meta (0-100).',
+  @ApiPropertyOptional({
+    description:
+      'Porcentaje de avance hacia la meta (0-100). null si no hay monto objetivo.',
     example: 2,
+    nullable: true,
   })
-  progress_percent!: number;
+  progress_percent!: number | null;
 
   @ApiPropertyOptional({
     description:

@@ -39,6 +39,15 @@ export class BankAccountRepository {
         encrypted_account_number: encryptedAccountNumber,
         encrypted_balance: encryptedBalance,
         annual_interest_rate: dto.annual_interest_rate ?? null,
+        yield_frequency: dto.yield_frequency ?? 'monthly',
+        rate_type: dto.rate_type ?? 'EA',
+        interest_enabled: dto.interest_enabled ?? true,
+        interest_start_date: dto.interest_start_date ?? null,
+        term_days: dto.term_days ?? null,
+        start_date: dto.start_date ?? null,
+        maturity_date: null,
+        maturity_action: dto.maturity_action ?? 'renew',
+        auto_renew: dto.auto_renew ?? true,
         is_primary: dto.is_primary ?? false,
         exempt_4x1000: dto.exempt_4x1000 ?? false,
       });
@@ -57,10 +66,17 @@ export class BankAccountRepository {
     });
   }
 
-  async findById(id: number, userId: number): Promise<BankAccount> {
-    const account = await this.repo.findOne({
+  async findByIdOrNull(
+    id: number,
+    userId: number,
+  ): Promise<BankAccount | null> {
+    return this.repo.findOne({
       where: { id, user_id: userId, deleted_at: IsNull() },
     });
+  }
+
+  async findById(id: number, userId: number): Promise<BankAccount> {
+    const account = await this.findByIdOrNull(id, userId);
     if (!account)
       throw new NotFoundException(
         this.i18n.t('banking.BANK_ACCOUNT_NOT_FOUND', { args: { id } }),

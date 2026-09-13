@@ -408,35 +408,3 @@ import { ConfigModule } from '@nestjs/config';
   exports: [LoggingService],
 })
 export class LoggingModule {}
-
-// ==================== EJEMPLO DE USO ====================
-
-/*
-// En tu controller o servicio:
-@Controller('example')
-export class ExampleController {
-  constructor(private readonly loggingService: LoggingService) {}
-
-  @Get()
-  async getExample() {
-    try {
-      // Usando la interfaz original (mensaje, tipo)
-      await this.loggingService.sendLog('Iniciando operación de ejemplo', 'INFO');
-
-      // Tu lógica aquí
-      const result = { data: 'ejemplo' };
-
-      // Con datos adicionales
-      await this.loggingService.sendLog('Operación completada exitosamente', 'INFO', { result });
-      return result;
-    } catch (error) {
-      // Registrando error
-      await this.loggingService.sendLog('Error en operación de ejemplo', 'ERROR', {
-        error: error.message,
-        stack: error.stack
-      });
-      throw error;
-    }
-  }
-}
-*/

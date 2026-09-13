@@ -4,8 +4,8 @@
  *   2. archivo .env.sonar (local, gitignoreado) en la raíz del proyecto.
  * La URL del servidor se lee de SONAR_HOST_URL o del archivo (default localhost:9000).
  */
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 const scanner = require("sonarqube-scanner").default;
 
 function loadEnv(file) {

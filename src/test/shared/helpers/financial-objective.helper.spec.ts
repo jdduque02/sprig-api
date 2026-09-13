@@ -54,15 +54,16 @@ describe('financial-objective.helper', () => {
       expect(objective.is_completed).toBe(false);
     });
 
-    it('trata target_amount nulo como cero', () => {
+    it('no auto-completa una meta sin monto objetivo', () => {
       const objective = {
         current_balance: 1000,
         target_amount: null,
-        is_completed: false,
-        completed_at: null,
+        is_completed: true,
+        completed_at: new Date(),
       };
-      applyCompletion(objective as never);
-      expect(objective.is_completed).toBe(true);
+      applyCompletion(objective);
+      expect(objective.is_completed).toBe(false);
+      expect(objective.completed_at).toBeNull();
     });
   });
 
@@ -119,14 +120,14 @@ describe('financial-objective.helper', () => {
       expect(progress.progress_percent).toBe(0);
     });
 
-    it('trata montos nulos como cero', () => {
+    it('devuelve progreso null cuando no hay monto objetivo', () => {
       const progress = computeObjectiveProgress({
         current_balance: null,
         target_amount: null,
         end_date: null,
       });
-      expect(progress.amount_remaining).toBe(0);
-      expect(progress.progress_percent).toBe(0);
+      expect(progress.amount_remaining).toBeNull();
+      expect(progress.progress_percent).toBeNull();
     });
   });
 });

@@ -69,9 +69,7 @@ export class KeycloakAdminService {
     if (cached) return cached;
 
     const url = `${this.baseUrl}/realms/${this.realm}/protocol/openid-connect/token`;
-    this.logger.log(
-      `[getAdminToken] URL: ${url} | clientId: ${this.clientId} | clientSecret: ${this.clientSecret ? '****' : 'UNDEFINED'}`,
-    );
+    this.logger.debug(`[getAdminToken] clientId: ${this.clientId}`);
     const body = new URLSearchParams({
       grant_type: 'client_credentials',
       client_id: this.clientId,

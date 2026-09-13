@@ -40,7 +40,7 @@
     "USERNAME_NOT_FOUND": "User with username \"{username}\" not found.",
     "USER_NOT_DELETED": "User with id {id} is not deleted.",
     "USER_DUPLICATE": "A user with that email or username already exists.",
-    "DB_ERROR": "Unexpected database error.",
+    "DB_ERROR": "An unexpected error occurred while fetching the user's information from the database. Please try again later.",
     "OWNERSHIP_FAIL": "Could not verify the requester's identity.",
     "FORBIDDEN": "You do not have permission to access this resource."
   },
@@ -51,16 +51,17 @@
   "catalog": {
     "CATEGORY_NOT_FOUND": "Category with id {id} not found.",
     "CATEGORY_DUPLICATE": "A category with that name already exists.",
-    "PROCESSING_ERROR": "Error processing the request.",
+    "PROCESSING_ERROR": "Could not complete the operation on the category due to an unexpected database error. Please try again later.",
     "SUBCATEGORY_NOT_FOUND": "Subcategory with id {id} not found.",
     "SUBCATEGORY_DUPLICATE": "A subcategory with that name already exists in this category."
   },
   "banking": {
     "BANK_ACCOUNT_NOT_FOUND": "Bank account with id {id} not found.",
     "BANK_ACCOUNT_DUPLICATE": "An account with those details already exists.",
-    "PROCESSING_ERROR": "Error processing the request.",
+    "PROCESSING_ERROR": "Could not complete the operation on the bank account due to an unexpected database error. Please try again later.",
     "ASSET_NOT_FOUND": "Financial asset with id {id} not found.",
-    "LIABILITY_NOT_FOUND": "Financial liability with id {id} not found."
+    "LIABILITY_NOT_FOUND": "Financial liability with id {id} not found.",
+    "FX_RATE_UNAVAILABLE": "Unable to fetch the exchange rate right now. Please try again later."
   },
   "finance": {
     "TRANSACTION_NOT_FOUND": "Transaction with id {id} not found.",
@@ -86,17 +87,29 @@
     "STATEMENT_IMPORT_INVALID_PDF": "Could not read the PDF \"{file}\". Check that it is not corrupted or scanned (no text layer).",
     "STATEMENT_IMPORT_NO_TRANSACTIONS": "No movements detected in the PDF \"{file}\".",
     "STATEMENT_IMPORT_NO_RETRYABLE": "There are no failed files to retry in this import.",
-    "STATEMENT_IMPORT_STORAGE_MISSING_RETRY": "The files \"{files}\" are no longer available to retry. Please upload the PDF again."
+    "STATEMENT_IMPORT_STORAGE_MISSING_RETRY": "The files \"{files}\" are no longer available to retry. Please upload the PDF again.",
+    "NEGATIVE_BALANCE_NOT_ALLOWED": "Negative balance not allowed for account {name}. Current balance: ${current}. Requested amount: ${amount}.",
+    "LIABILITY_NOT_FOUND": "Financial liability with id {id} not found.",
+    "CURRENCY_MISMATCH": "Transaction currency ({txCurrency}) does not match entity currency ({entityCurrency}).",
+    "TRANSFER_DESTINATION_REQUIRED": "A destination account or financial liability is required.",
+    "TRANSFER_INVALID_DESTINATION": "Destination must be a bank account or financial liability (credit card)."
   },
   "intelligence": {
     "FINANCIAL_SUMMARY_NOT_FOUND": "No financial summary found for user {userId}.",
     "FINANCIAL_SUMMARY_PERIOD_NOT_FOUND": "No financial summary found for period {periodId}.",
-    "TAX_SUMMARY_NOT_FOUND": "No tax summary found for year {year}."
+    "TAX_SUMMARY_NOT_FOUND": "No tax summary found for year {year}.",
+    "TAX_SUMMARY_ID_NOT_FOUND": "No tax summary found with id {id}.",
+    "TAX_SUMMARY_ALREADY_EXISTS": "A tax summary already exists for year {year}. Cannot create another.",
+    "FINANCIAL_SUMMARY_ALREADY_FINAL": "The financial summary for period {periodId} is already final and cannot be recalculated.",
+    "FINANCIAL_PROFILE_REQUIRED": "You must create your financial profile before generating the analysis (POST user/{userId}/financial-profile)."
+  },
+  "mail": {
+    "TEMPLATE_NOT_FOUND": "No default or custom email template exists with key \"{key}\". Check the identifier or create a new template with that key."
   },
   "news": {
     "NOT_FOUND": "News item with id {id} not found.",
     "DUPLICATE": "A news item with that title already exists.",
-    "PROCESSING_ERROR": "Error processing the request."
+    "PROCESSING_ERROR": "Could not complete the operation on the news item due to an unexpected database error. Please try again later."
   },
   "notification": {
     "WS_INTERNAL_ERROR": "Internal WebSocket error.",
@@ -107,7 +120,8 @@
     "UPCOMING_DEDUCTION": "Upcoming deduction",
     "UPCOMING_INCOME": "Upcoming income",
     "UPCOMING_INVESTMENT": "Upcoming investment",
-    "GENERIC_MOVEMENT": "your movement",
+    "UPCOMING_SUBSCRIPTION": "Upcoming subscription",
+    "GENERIC_MOVEMENT": "scheduled movement",
     "UPCOMING_DESCRIPTION": "Your {concept} of {amount} will be executed on {date}.",
     "PAYMENT_METHOD": "Payment method: {method}",
     "SOURCE_ENTITY": "Source entity: {source}",
@@ -116,14 +130,14 @@
     "IMPORT_COMPLETED_DESCRIPTION": "{created} transactions were registered across {files} file(s). Files with errors: {failed}. Uncategorized: {uncategorized}."
   },
   "shared": {
-    "UNEXPECTED_ERROR": "Unexpected error.",
-    "INVALID_INPUT": "Invalid input data.",
+    "UNEXPECTED_ERROR": "An unexpected error occurred while processing the request. If the problem persists, please contact support.",
+    "INVALID_INPUT": "Fields with validation errors: {fields}",
     "SUCCESS": "Operation successful",
     "CREATED": "Resource created successfully",
     "ACCEPTED": "Request accepted",
     "NO_CONTENT": "Operation completed with no content",
     "PARTIAL_CONTENT": "Partial content obtained",
-    "INTERNAL_ERROR": "Internal server error",
+    "INTERNAL_ERROR": "An internal server error occurred. Please try again later; if it persists, contact support.",
     "VALIDATION_ERRORS": "Validation errors",
     "UNAUTHORIZED": "Unauthorized",
     "FORBIDDEN": "Access forbidden",
@@ -145,7 +159,7 @@
     "IS_NUMBER": "{property} must be a number.",
     "IS_ENUM": "{property} must be one of the following values: {constraints}.",
     "IS_IN": "{property} must be one of the following values: {constraints}.",
-    "IS_MATCH": "{property} must match {constraints} regular expression.",
+    "IS_MATCH": "{property} does not meet the required format.",
     "IS_URL": "{property} must be a URL address.",
     "IS_BOOLEAN": "{property} must be a boolean value.",
     "IS_OBJECT": "{property} must be an object.",
@@ -158,6 +172,6 @@
     "BANKING_ENTITY_NOT_FOUND": "Banking entity with id {id} not found.",
     "BANKING_ENTITY_CODE_EXISTS": "A banking entity with that code already exists.",
     "SUPPORT_REQUEST_NOT_FOUND": "Support request with id {id} not found.",
-    "PROCESSING_ERROR": "Error processing the request."
+    "PROCESSING_ERROR": "Could not complete the operation on the support request due to an unexpected database error. Please try again later."
   }
 }

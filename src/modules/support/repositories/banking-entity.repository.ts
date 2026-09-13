@@ -87,8 +87,12 @@ export class BankingEntityRepository {
   async softDelete(id: number): Promise<void> {
     const entity = await this.findById(id);
     entity.is_active = false;
-    await this.repo.save(entity);
-    this.logger.log(`Entidad bancaria ID ${id} desactivada.`);
+    // `save()` solo desactivaba (is_active=false) sin tocar `deleted_at`,
+    // así que `findById`/`findAll` (que sí filtran por `deleted_at IS NULL`)
+    // seguían devolviendo la entidad "eliminada". `softRemove` persiste el
+    // cambio de `is_active` y además marca `deleted_at`.
+    await this.repo.softRemove(entity);
+    this.logger.log(`Entidad bancaria ID ${id} eliminada (soft delete).`);
   }
 
   /**

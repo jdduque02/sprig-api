@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { I18nService, I18nContext } from 'nestjs-i18n';
+import { I18nService, I18nContext, I18nValidationException } from 'nestjs-i18n';
 
 /**
  * Filtro global que captura excepciones lanzadas por Guards, Pipes y Controllers
@@ -24,12 +24,30 @@ export class HttpExceptionFilter implements ExceptionFilter {
     @Optional() @Inject(I18nService) private readonly i18n?: I18nService,
   ) {}
 
+  /**
+   * Traduce una clave i18n resolviendo el idioma real de la request
+   * (headers x-lang/Accept-Language o locale del usuario autenticado,
+   * ver UserLocaleResolver). Si no hay contexto de request (p.ej. jobs
+   * o websockets sin resolver aplicable), i18n.t() cae al fallbackLanguage
+   * configurado ('es').
+   */
+  private translate(
+    key: string,
+    args?: Record<string, unknown>,
+    host?: ArgumentsHost,
+  ): string {
+    const i18nContext = I18nContext.current(host);
+    const i18n = i18nContext ?? this.i18n;
+    if (!i18n) return '';
+    const lang = i18nContext?.lang;
+    const result: string = i18n.t(key, lang ? { lang, args } : { args });
+    return result !== key ? result : '';
+  }
+
   catch(exception: HttpException, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
-
-    const i18n = this.i18n ?? I18nContext.current();
 
     const status = exception.getStatus();
     const responseData = exception.getResponse();
@@ -47,8 +65,34 @@ export class HttpExceptionFilter implements ExceptionFilter {
       return;
     }
 
+    // I18nValidationException: extraer detalles de validación del objeto errors
+    if (exception instanceof I18nValidationException) {
+      const validationErrors = exception.errors ?? [];
+      const details = validationErrors.map((err) => ({
+        property: err.property,
+        constraints: err.constraints,
+      }));
+
+      const fields = details.map((d) => d.property).join(', ');
+      const body: Record<string, unknown> = {
+        status,
+        error: 'I18nValidationException',
+        message:
+          this.translate('shared.INVALID_INPUT', { fields }, host) ||
+          `Campos con errores de validación: ${fields}`,
+        details,
+        timestamp,
+        path,
+      };
+
+      response.status(status).json(body);
+      return;
+    }
+
     let error = exception.name.replace('Exception', '');
-    let message = i18n?.t('shared.UNEXPECTED_ERROR') ?? 'Error inesperado.';
+    let message =
+      this.translate('shared.UNEXPECTED_ERROR', undefined, host) ||
+      'Error inesperado.';
     let details: unknown[] = [];
 
     if (typeof responseData === 'string') {
@@ -60,9 +104,19 @@ export class HttpExceptionFilter implements ExceptionFilter {
       };
       if (Array.isArray(resp.message)) {
         // Errores de validación (class-validator)
-        message =
-          i18n?.t('shared.INVALID_INPUT') ?? 'Datos de entrada inválidos.';
         details = resp.message;
+        const fields = details
+          .map((d: any) => d.property)
+          .filter(Boolean)
+          .join(', ');
+        message = fields
+          ? this.translate('shared.INVALID_INPUT', { fields }, host) ||
+            `Campos con errores de validación: ${fields}`
+          : this.translate(
+              'shared.INVALID_INPUT',
+              { fields: 'desconocidos' },
+              host,
+            ) || 'Datos de entrada inválidos.';
       } else {
         message = resp.message ?? message;
       }

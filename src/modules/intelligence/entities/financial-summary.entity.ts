@@ -50,19 +50,19 @@ export class FinancialSummary {
   net_worth!: number;
 
   @Column({ type: 'numeric', precision: 5, scale: 2, nullable: true })
-  expense_ratio!: number;
+  expense_ratio!: number | null;
 
   @Column({ type: 'numeric', precision: 5, scale: 2, nullable: true })
-  debt_ratio!: number;
+  debt_ratio!: number | null;
 
   @Column({ type: 'numeric', precision: 5, scale: 2, nullable: true })
-  savings_rate!: number;
+  savings_rate!: number | null;
 
   @Column({ type: 'numeric', precision: 15, scale: 2, nullable: true })
-  recommended_max_expense!: number;
+  recommended_max_expense!: number | null;
 
   @Column({ type: 'numeric', precision: 15, scale: 2, nullable: true })
-  recommended_savings!: number;
+  recommended_savings!: number | null;
 
   @Column({ type: 'boolean', default: false })
   is_over_spending!: boolean;

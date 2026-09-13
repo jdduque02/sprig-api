@@ -7,6 +7,7 @@ import { TransactionRecordRepository } from '@finance/repositories/transaction-r
 import { TransactionRecord } from '@finance/entities/transaction-record.entity';
 import { TransactionCategoryRule } from '@finance/entities/transaction-category-rule.entity';
 import { FinancialObjective } from '@finance/entities/financial-objective.entity';
+import { Empresa } from '@finance/entities/empresa.entity';
 import { CreateTransactionRecordDto } from '@finance/dto/transaction-record/create-transaction-record.dto';
 import { UpdateTransactionRecordDto } from '@finance/dto/transaction-record/update-transaction-record.dto';
 import { TransactionRecordQueryDto } from '@finance/dto/transaction-record/transaction-record-query.dto';
@@ -74,10 +75,15 @@ const mockManager = {
   getRepository: jest.fn().mockReturnValue(mockTypeOrmRepo),
 };
 
+const mockEmpresaRepo = {
+  find: jest.fn(),
+};
+
 const mockDataSource = {
   transaction: jest.fn((cb: (manager: typeof mockManager) => unknown) =>
     cb(mockManager),
   ),
+  getRepository: jest.fn().mockReturnValue(mockEmpresaRepo),
 };
 
 const mockEncryptionService = {
@@ -151,6 +157,7 @@ describe('TransactionRecordRepository', () => {
     mockQb.update.mockReturnThis();
     mockQb.set.mockReturnThis();
     mockTypeOrmRepo.createQueryBuilder.mockReturnValue(mockQb);
+    mockDataSource.getRepository.mockReturnValue(mockEmpresaRepo);
     mockManager.getRepository.mockImplementation((entity: unknown) => {
       if (entity === TransactionRecord) return mockTypeOrmRepo;
       if (entity === TransactionCategoryRule) return mockCategoryRuleRepo;
@@ -437,7 +444,8 @@ describe('TransactionRecordRepository', () => {
         .mockResolvedValueOnce([
           { bucket: '2026-08-03', type: 'income', amount: '1000', count: '2' },
           { bucket: '2026-08-03', type: 'expense', amount: '400', count: '3' },
-        ]);
+        ])
+        .mockResolvedValueOnce([]);
 
       const result = await repo.getSummary(10, {
         date_from: '2026-08-01',
@@ -477,6 +485,7 @@ describe('TransactionRecordRepository', () => {
 
     it('debe aplicar el filtro de tipo y el grupo semanal cuando se proveen', async () => {
       mockQb.getRawMany
+        .mockResolvedValueOnce([])
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([]);
@@ -556,7 +565,9 @@ describe('TransactionRecordRepository', () => {
         target_amount: 1000,
         is_completed: false,
         completed_at: null,
-        encrypted_balance: '50',
+        // Saldo suficiente para cubrir el débito neto de -100 sobre la
+        // cuenta 9 sin disparar la validación de saldo negativo.
+        encrypted_balance: '500',
       });
 
       const dtos = [
@@ -705,13 +716,51 @@ describe('TransactionRecordRepository', () => {
       objective_id: null,
     };
 
-    it('lanza BadRequestException si origen = destino', async () => {
-      await expect(
-        repo.createTransfer(10, {
-          ...dto,
-          destination_account_id: 100,
-        } as never),
-      ).rejects.toThrow(BadRequestException);
+    it('permite origen = destino (la validación de igualdad fue removida)', async () => {
+      // La restricción "TRANSFER_SAME_ACCOUNT" fue eliminada de
+      // createTransfer (ver historial de transaction-record.repository.ts);
+      // actualmente resuelve normalmente en vez de rechazar.
+      mockTypeOrmRepo.create.mockImplementation((e: unknown) => e);
+      mockTypeOrmRepo.save.mockImplementation((e: unknown) =>
+        Promise.resolve({ ...(e as object), id: Math.random() }),
+      );
+      // createTransfer hace 4 lecturas secuenciales de la cuenta 100: (1)
+      // valida existencia del origen, (2) valida existencia del destino,
+      // (3) applyTransferAdjustment del leg origen (débito), (4)
+      // applyTransferAdjustment del leg destino (crédito). Se encolan 4
+      // snapshots independientes para que cada lectura calcule sobre su
+      // propio objeto y no sobre una referencia mutada compartida.
+      const freshAccount = () => ({
+        id: 100,
+        account_type: 'AHORROS',
+        bank_name: 'Banco A',
+        encrypted_balance: '100000',
+      });
+      mockTypeOrmRepo.findOneBy
+        .mockResolvedValueOnce(freshAccount())
+        .mockResolvedValueOnce(freshAccount())
+        .mockResolvedValueOnce(freshAccount())
+        .mockResolvedValueOnce(freshAccount());
+
+      const [origin, destination] = await repo.createTransfer(10, {
+        ...dto,
+        destination_account_id: 100,
+      } as never);
+      expect(origin.origin_account_id).toBe(100);
+      expect(destination.destination_account_id).toBe(100);
+
+      // Verifica que el débito (leg origen) y el crédito (leg destino) se
+      // aplican como dos ajustes separados sobre la MISMA cuenta
+      // (applyTransferAdjustment se invoca en serie para cada leg, no en
+      // paralelo). Si un futuro cambio paralelizara esas llamadas con
+      // Promise.all sobre el mismo id de cuenta, este test seguiría
+      // documentando el resultado esperado de cada ajuste individual.
+      const accountSaves = mockTypeOrmRepo.save.mock.calls
+        .map((call) => call[0] as { encrypted_balance?: string })
+        .filter((s) => s.encrypted_balance !== undefined);
+      expect(accountSaves).toHaveLength(2);
+      expect(accountSaves[0].encrypted_balance).toBe('50000'); // débito: 100000 - 50000
+      expect(accountSaves[1].encrypted_balance).toBe('150000'); // crédito: 100000 + 50000
     });
 
     it('lanza NotFoundException si alguna cuenta no existe', async () => {
@@ -821,7 +870,10 @@ describe('TransactionRecordRepository', () => {
         Promise.resolve(e),
       );
       mockTypeOrmRepo.findOneBy.mockResolvedValue({
-        encrypted_balance: '0',
+        // Saldo suficiente para soportar el débito/crédito de revertir
+        // (-1) y re-aplicar (+1) el monto (50000 -> 60000) sin disparar
+        // la validación de saldo negativo.
+        encrypted_balance: '1000000',
         current_balance: 0,
         target_amount: 1000,
       });
@@ -1244,7 +1296,9 @@ describe('TransactionRecordRepository', () => {
         id: 100,
         account_type: 'AHORROS',
         bank_name: 'Banco A',
-        encrypted_balance: '0',
+        // Saldo suficiente para cubrir el débito del monto (10) sin
+        // disparar la validación de saldo negativo.
+        encrypted_balance: '1000000',
       });
 
       const [origin] = await repo.createTransfer(10, {
@@ -1321,7 +1375,9 @@ describe('TransactionRecordRepository', () => {
       mockTypeOrmRepo.findOneBy.mockImplementation((c: { id?: number }) =>
         Promise.resolve({
           id: c?.id,
-          encrypted_balance: '0',
+          // Saldo suficiente para soportar el revert (-1) y el re-apply
+          // (+1) del monto actualizado sin disparar saldo negativo.
+          encrypted_balance: '1000000',
           current_balance: 0,
           target_amount: 1000,
         }),
@@ -1413,7 +1469,16 @@ describe('TransactionRecordRepository', () => {
   // collectContributions: transferencias en lote
   // ─────────────────────────────────────────────────────────────
   describe('createMany - transferencias y deltas cero', () => {
-    it('ajusta cuentas origen/destino de transferencias', async () => {
+    it('no ajusta cuentas origen/destino (createMany solo procesa vínculos genéricos)', async () => {
+      // NOTA: collectContributions (usado por createMany) itera LINK_KINDS
+      // ['objective','account','asset','liability'] leyendo tx.account_id /
+      // tx.asset_id / tx.liability_id / tx.objective_id — NO tx.origin_
+      // account_id / tx.destination_account_id. Esos campos solo son
+      // ajustados por applyTransferAdjustment, usado exclusivamente por
+      // createTransfer/updateTransfer/cloneTransfer/softDeleteTransfer.
+      // CreateTransactionRecordDto tampoco expone origin/destination_
+      // account_id, así que este escenario no es alcanzable desde la API
+      // pública hoy; por eso createMany no ajusta ningún saldo aquí.
       mockTypeOrmRepo.create.mockImplementation((e: unknown) => e);
       mockTypeOrmRepo.save.mockResolvedValue([
         buildRecord({
@@ -1455,18 +1520,8 @@ describe('TransactionRecordRepository', () => {
       const accountSaves = mockTypeOrmRepo.save.mock.calls
         .map((call) => call[0])
         .filter((s) => s?.encrypted_balance !== undefined);
-      expect(accountSaves.find((s) => s?.id === 7)?.encrypted_balance).toBe(
-        '0',
-      );
-      expect(accountSaves.find((s) => s?.id === 8)?.encrypted_balance).toBe(
-        '200',
-      );
-      expect(accountSaves.find((s) => s?.id === 9)?.encrypted_balance).toBe(
-        '150',
-      );
-      expect(accountSaves.find((s) => s?.id === 10)?.encrypted_balance).toBe(
-        '70',
-      );
+      expect(accountSaves).toHaveLength(0);
+      expect(mockTypeOrmRepo.findOneBy).not.toHaveBeenCalled();
     });
 
     it('omite deltas cero al ajustar vínculos', async () => {
@@ -1583,7 +1638,8 @@ describe('TransactionRecordRepository', () => {
             count: '1',
           },
           { bucket: '2026-08-03', type: 'transfer', amount: '999', count: '1' },
-        ]);
+        ])
+        .mockResolvedValueOnce([]);
 
       const result = await repo.getSummary(10, {
         date_from: '2026-08-01',
@@ -1606,6 +1662,7 @@ describe('TransactionRecordRepository', () => {
           { category_id: 2, type: 'expense', amount: '400', count: '1' },
           { category_id: 3, type: 'expense', amount: '100', count: '1' },
         ])
+        .mockResolvedValueOnce([])
         .mockResolvedValueOnce([]);
 
       const result = await repo.getSummary(10, {
@@ -1630,7 +1687,8 @@ describe('TransactionRecordRepository', () => {
             amount: '10',
             count: '1',
           },
-        ]);
+        ])
+        .mockResolvedValueOnce([]);
 
       const result = await repo.getSummary(10, { group_by: 'week' });
 
@@ -1645,7 +1703,8 @@ describe('TransactionRecordRepository', () => {
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([
           { bucket: '2026-08-03', type: 'income', amount: '10', count: '1' },
-        ]);
+        ])
+        .mockResolvedValueOnce([]);
 
       const result = await repo.getSummary(10, { group_by: 'month' });
 
@@ -1659,7 +1718,8 @@ describe('TransactionRecordRepository', () => {
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([
           { bucket: 'sin-fecha', type: 'income', amount: '10', count: '1' },
-        ]);
+        ])
+        .mockResolvedValueOnce([]);
 
       const result = await repo.getSummary(10, {});
 
@@ -1776,7 +1836,8 @@ describe('TransactionRecordRepository', () => {
       mockQb.getRawMany
         .mockResolvedValueOnce([{ type: 'expense' }])
         .mockResolvedValueOnce([{ category_id: 1, type: 'expense' }])
-        .mockResolvedValueOnce([{ bucket: '2026-08-03', type: 'expense' }]);
+        .mockResolvedValueOnce([{ bucket: '2026-08-03', type: 'expense' }])
+        .mockResolvedValueOnce([]);
 
       const result = await repo.getSummary(10, {
         date_from: '2026-08-01',
@@ -1801,7 +1862,8 @@ describe('TransactionRecordRepository', () => {
         ])
         .mockResolvedValueOnce([
           { bucket: '2026-08-03', type: 'foo', amount: '5', count: '1' },
-        ]);
+        ])
+        .mockResolvedValueOnce([]);
 
       const result = await repo.getSummary(10, {
         date_from: '2026-08-01',
@@ -1824,6 +1886,7 @@ describe('TransactionRecordRepository', () => {
         .mockResolvedValueOnce([
           { category_id: 1, type: 'income', amount: '300', count: '1' },
         ])
+        .mockResolvedValueOnce([])
         .mockResolvedValueOnce([]);
 
       const result = await repo.getSummary(10, {
@@ -1840,7 +1903,8 @@ describe('TransactionRecordRepository', () => {
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([
           { bucket: null, type: 'income', amount: '10', count: '1' },
-        ]);
+        ])
+        .mockResolvedValueOnce([]);
 
       const result = await repo.getSummary(10, {
         date_from: '2026-08-01',
@@ -1848,6 +1912,697 @@ describe('TransactionRecordRepository', () => {
       });
 
       expect(result.series[0].key).toBe('');
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // create / createMany / update: categoría por defecto de empresa
+  // ─────────────────────────────────────────────────────────────
+  describe('categoría por defecto de empresa', () => {
+    it('create: usa la categoría por defecto de la empresa si no hay categoría', async () => {
+      const saved = buildRecord({ description: '', company_id: 5 });
+      mockTypeOrmRepo.create.mockReturnValue(saved);
+      mockTypeOrmRepo.save.mockResolvedValue(saved);
+      mockCategoryRuleRepo.findOne.mockResolvedValue(null);
+      mockEmpresaRepo.find.mockResolvedValue([]);
+      const empresaFindOne = jest
+        .fn()
+        .mockResolvedValue({ default_category_id: 9 });
+      mockManager.getRepository.mockImplementation((entity: unknown) => {
+        if (entity === TransactionRecord) return mockTypeOrmRepo;
+        if (entity === TransactionCategoryRule) return mockCategoryRuleRepo;
+        const name = (entity as { name?: string } | null)?.name;
+        if (name === 'Empresa') return { findOne: empresaFindOne };
+        return linkedRepos.get(name ?? '') ?? mockTypeOrmRepo;
+      });
+
+      const result = await repo.create(10, {
+        amount: 50,
+        type: 'EXPENSE' as never,
+        company_id: 5,
+      });
+
+      expect(empresaFindOne).toHaveBeenCalled();
+      expect(result.category_id).toBe(9);
+      expect(result.category_status).toBe(ReviewStatusEnum.CATEGORIZED);
+    });
+
+    it('create: no asigna categoría si la empresa no tiene una por defecto', async () => {
+      const saved = buildRecord({ description: '', company_id: 5 });
+      mockTypeOrmRepo.create.mockReturnValue(saved);
+      mockTypeOrmRepo.save.mockResolvedValue(saved);
+      mockCategoryRuleRepo.findOne.mockResolvedValue(null);
+      const empresaFindOne = jest
+        .fn()
+        .mockResolvedValue({ default_category_id: null });
+      mockManager.getRepository.mockImplementation((entity: unknown) => {
+        if (entity === TransactionRecord) return mockTypeOrmRepo;
+        if (entity === TransactionCategoryRule) return mockCategoryRuleRepo;
+        const name = (entity as { name?: string } | null)?.name;
+        if (name === 'Empresa') return { findOne: empresaFindOne };
+        return linkedRepos.get(name ?? '') ?? mockTypeOrmRepo;
+      });
+
+      const result = await repo.create(10, {
+        amount: 50,
+        type: 'EXPENSE' as never,
+        company_id: 5,
+      });
+
+      expect(result.category_id).toBeNull();
+    });
+
+    it('createMany: aplica la categoría por defecto de la empresa a registros sin categoría', async () => {
+      mockTypeOrmRepo.create.mockImplementation((e: unknown) => e);
+      mockTypeOrmRepo.save.mockResolvedValue([]);
+      const empresaFindOne = jest
+        .fn()
+        .mockResolvedValue({ default_category_id: 7 });
+      mockManager.getRepository.mockImplementation((entity: unknown) => {
+        if (entity === TransactionRecord) return mockTypeOrmRepo;
+        if (entity === TransactionCategoryRule) return mockCategoryRuleRepo;
+        const name = (entity as { name?: string } | null)?.name;
+        if (name === 'Empresa') return { findOne: empresaFindOne };
+        return linkedRepos.get(name ?? '') ?? mockTypeOrmRepo;
+      });
+
+      await repo.createMany(
+        10,
+        [
+          {
+            amount: 100,
+            type: 'EXPENSE' as never,
+            category_id: null,
+            company_id: 5,
+            description: '',
+          },
+        ] as never,
+        { assignCategories: false },
+      );
+
+      const created = mockTypeOrmRepo.create.mock.calls.map((c) => c[0]);
+      expect(created[0].category_id).toBe(7);
+      expect(created[0].category_status).toBe(ReviewStatusEnum.CATEGORIZED);
+      expect(empresaFindOne).toHaveBeenCalledTimes(1);
+    });
+
+    it('createMany: reutiliza la categoría de empresa cacheada para varios registros', async () => {
+      mockTypeOrmRepo.create.mockImplementation((e: unknown) => e);
+      mockTypeOrmRepo.save.mockResolvedValue([]);
+      const empresaFindOne = jest
+        .fn()
+        .mockResolvedValue({ default_category_id: 7 });
+      mockManager.getRepository.mockImplementation((entity: unknown) => {
+        if (entity === TransactionRecord) return mockTypeOrmRepo;
+        if (entity === TransactionCategoryRule) return mockCategoryRuleRepo;
+        const name = (entity as { name?: string } | null)?.name;
+        if (name === 'Empresa') return { findOne: empresaFindOne };
+        return linkedRepos.get(name ?? '') ?? mockTypeOrmRepo;
+      });
+
+      await repo.createMany(
+        10,
+        [
+          {
+            amount: 100,
+            type: 'EXPENSE' as never,
+            category_id: null,
+            company_id: 5,
+            description: '',
+          },
+          {
+            amount: 20,
+            type: 'EXPENSE' as never,
+            category_id: null,
+            company_id: 5,
+            description: '',
+          },
+        ] as never,
+        { assignCategories: false },
+      );
+
+      expect(empresaFindOne).toHaveBeenCalledTimes(1);
+    });
+
+    it('update: usa la categoría por defecto de la empresa cuando no hay categoría', async () => {
+      // newCategoryId = fields.category_id ?? previous.category_id; para que
+      // termine siendo null (y así activar la rama de categoría por defecto
+      // de empresa) ni el dto ni el registro previo pueden traer categoría.
+      const existing = buildRecord({
+        category_id: null,
+        company_id: 5,
+        description: '',
+      });
+      const updated = buildRecord({
+        category_id: null,
+        company_id: 5,
+        description: '',
+      });
+      mockTypeOrmRepo.findOne.mockResolvedValue(existing);
+      mockTypeOrmRepo.merge.mockReturnValue(updated);
+      mockTypeOrmRepo.save.mockImplementation((e: object) =>
+        Promise.resolve(e),
+      );
+      mockCategoryRuleRepo.findOne.mockResolvedValue(null);
+      const empresaFindOne = jest
+        .fn()
+        .mockResolvedValue({ default_category_id: 11 });
+      mockManager.getRepository.mockImplementation((entity: unknown) => {
+        if (entity === TransactionRecord) return mockTypeOrmRepo;
+        if (entity === TransactionCategoryRule) return mockCategoryRuleRepo;
+        const name = (entity as { name?: string } | null)?.name;
+        if (name === 'Empresa') return { findOne: empresaFindOne };
+        return linkedRepos.get(name ?? '') ?? mockTypeOrmRepo;
+      });
+
+      const result = await repo.update(1, 10, {});
+
+      expect(empresaFindOne).toHaveBeenCalled();
+      expect(result.category_id).toBe(11);
+      expect(result.category_status).toBe(ReviewStatusEnum.CATEGORIZED);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // findAll: filtro por company_id
+  // ─────────────────────────────────────────────────────────────
+  describe('findAll - filtro por company_id', () => {
+    it('aplica el filtro por company_id cuando se provee', async () => {
+      mockQb.getManyAndCount.mockResolvedValue([[], 0]);
+
+      await repo.findAll(10, { company_id: 5 });
+
+      expect(mockQb.andWhere).toHaveBeenCalledWith(
+        'tr.company_id = :company_id',
+        { company_id: 5 },
+      );
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // createTransfer: validaciones de destino
+  // ─────────────────────────────────────────────────────────────
+  describe('createTransfer - validaciones de destino', () => {
+    it('lanza BadRequestException si no se provee ningún destino', async () => {
+      await expect(
+        repo.createTransfer(10, {
+          source_account_id: 100,
+          amount: 100,
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('lanza BadRequestException si se proveen ambos destinos', async () => {
+      await expect(
+        repo.createTransfer(10, {
+          source_account_id: 100,
+          destination_account_id: 200,
+          destination_liability_id: 300,
+          amount: 100,
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // createTransfer: destino pasivo (tarjeta de crédito)
+  // ─────────────────────────────────────────────────────────────
+  describe('createTransfer - destino pasivo', () => {
+    const dto = {
+      source_account_id: 100,
+      destination_liability_id: 300,
+      amount: 50000,
+      transaction_date: '2026-08-01',
+    };
+
+    it('crea la transferencia con destino un pasivo financiero', async () => {
+      mockTypeOrmRepo.create.mockImplementation((e: unknown) => e);
+      mockTypeOrmRepo.save.mockImplementation((e: unknown) =>
+        Promise.resolve({ ...(e as object), id: Math.random() }),
+      );
+      mockTypeOrmRepo.findOneBy.mockResolvedValue({
+        id: 100,
+        account_type: 'AHORROS',
+        bank_name: 'Banco A',
+        encrypted_balance: '100000',
+      });
+      const liabilityRepo = {
+        findOneBy: jest.fn().mockResolvedValue({
+          id: 300,
+          liability_type: 'CREDIT_CARD',
+          name: 'Tarjeta X',
+          current_balance: 5000,
+        }),
+        save: jest.fn().mockImplementation((e: object) => Promise.resolve(e)),
+      };
+      mockManager.getRepository.mockImplementation((entity: unknown) => {
+        if (entity === TransactionRecord) return mockTypeOrmRepo;
+        if (entity === BankAccount) return mockTypeOrmRepo;
+        const name = (entity as { name?: string } | null)?.name;
+        if (name === FinancialLiability.name) return liabilityRepo;
+        return linkedRepos.get(name ?? '') ?? mockTypeOrmRepo;
+      });
+
+      const [origin, destination] = await repo.createTransfer(10, dto);
+
+      expect(liabilityRepo.findOneBy).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 300, user_id: 10 }),
+      );
+      expect(origin.origin_account_id).toBe(100);
+      expect(destination.liability_id).toBe(300);
+      expect(destination.destination_account).toBe('CREDIT_CARD');
+      expect(destination.destination_bank).toBe('Tarjeta X');
+    });
+
+    it('lanza NotFoundException si el pasivo destino no existe', async () => {
+      mockTypeOrmRepo.findOneBy.mockResolvedValue({
+        id: 100,
+        account_type: 'AHORROS',
+        bank_name: 'Banco A',
+        encrypted_balance: '100000',
+      });
+      const liabilityRepo = { findOneBy: jest.fn().mockResolvedValue(null) };
+      mockManager.getRepository.mockImplementation((entity: unknown) => {
+        if (entity === TransactionRecord) return mockTypeOrmRepo;
+        if (entity === BankAccount) return mockTypeOrmRepo;
+        const name = (entity as { name?: string } | null)?.name;
+        if (name === FinancialLiability.name) return liabilityRepo;
+        return linkedRepos.get(name ?? '') ?? mockTypeOrmRepo;
+      });
+
+      await expect(repo.createTransfer(10, dto as never)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // applyTransferAdjustment: pasivo vinculado
+  // ─────────────────────────────────────────────────────────────
+  describe('applyTransferAdjustment - pasivo vinculado', () => {
+    it('reduce el saldo del pasivo vinculado a la transferencia', async () => {
+      const record = buildRecord({
+        transfer_group_id: 'g1',
+        origin_account_id: 100,
+        liability_id: 4,
+        amount: 200,
+      });
+      mockTypeOrmRepo.findOne.mockResolvedValue(record);
+      mockTypeOrmRepo.find.mockResolvedValue([record]);
+      mockTypeOrmRepo.softRemove.mockResolvedValue([]);
+      mockTypeOrmRepo.findOneBy.mockResolvedValue({
+        id: 100,
+        encrypted_balance: '100000',
+      });
+      const liabilityRepo = {
+        findOneBy: jest.fn().mockResolvedValue({ id: 4, current_balance: 500 }),
+        save: jest.fn().mockImplementation((e: object) => Promise.resolve(e)),
+      };
+      mockManager.getRepository.mockImplementation((entity: unknown) => {
+        if (entity === TransactionRecord) return mockTypeOrmRepo;
+        if (entity === BankAccount) return mockTypeOrmRepo;
+        const name = (entity as { name?: string } | null)?.name;
+        if (name === FinancialLiability.name) return liabilityRepo;
+        return linkedRepos.get(name ?? '') ?? mockTypeOrmRepo;
+      });
+
+      await repo.softDeleteTransfer(1, 10);
+
+      expect(liabilityRepo.save).toHaveBeenCalled();
+      // sign=-1 revierte: -amount*sign = -200*-1 = 200 (abona de vuelta)
+      const [savedLiability] = liabilityRepo.save.mock.calls[0] as [
+        { current_balance: number },
+      ];
+      expect(savedLiability.current_balance).toBe(700);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // applyToEntity: saldo negativo no permitido
+  // ─────────────────────────────────────────────────────────────
+  describe('applyToEntity - saldo negativo', () => {
+    it('lanza BadRequestException si el ajuste deja el saldo de la cuenta en negativo', async () => {
+      const old = buildRecord({ amount: 100, type: 'expense', account_id: 1 });
+      const updated = buildRecord({
+        amount: 500,
+        type: 'expense',
+        account_id: 1,
+      });
+      mockTypeOrmRepo.findOne.mockResolvedValue(old);
+      mockTypeOrmRepo.merge.mockReturnValue(updated);
+      mockTypeOrmRepo.findOneBy.mockResolvedValue({
+        id: 1,
+        bank_name: 'Bancolombia',
+        encrypted_balance: '100',
+      });
+
+      await expect(repo.update(1, 10, { amount: 500 })).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // updateTransfer: campos fijos (is_fixed, fixed_type, frequency, due_day, reminder_days)
+  // ─────────────────────────────────────────────────────────────
+  describe('updateTransfer - campos de recurrencia', () => {
+    it('actualiza los campos de recurrencia de ambos movimientos', async () => {
+      const record = buildRecord({
+        transfer_group_id: 'g1',
+        origin_account_id: 100,
+        destination_account_id: 200,
+        amount: 50000,
+      });
+      mockTypeOrmRepo.findOne.mockResolvedValue(record);
+      mockTypeOrmRepo.find.mockResolvedValue([record]);
+      mockTypeOrmRepo.merge.mockImplementation(
+        (old: object, fields: object) => ({ ...old, ...fields }),
+      );
+      mockTypeOrmRepo.save.mockImplementation((e: object) =>
+        Promise.resolve(e),
+      );
+      mockTypeOrmRepo.findOneBy.mockResolvedValue({
+        id: 100,
+        encrypted_balance: '1000000',
+        current_balance: 0,
+        target_amount: 1000,
+      });
+
+      await repo.updateTransfer(1, 10, {
+        is_fixed: true,
+        fixed_type: 'deduction' as never,
+        frequency: 'monthly' as never,
+        due_day: 5,
+        reminder_days: 2,
+      });
+
+      const mergedSave = mockTypeOrmRepo.save.mock.calls
+        .map((call) => call[0] as Record<string, unknown>)
+        .find((s) => s?.id === 1);
+      expect(mergedSave?.is_fixed).toBe(true);
+      expect(mergedSave?.fixed_type).toBe('deduction');
+      expect(mergedSave?.frequency).toBe('monthly');
+      expect(mergedSave?.due_day).toBe(5);
+      expect(mergedSave?.reminder_days).toBe(2);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // clone
+  // ─────────────────────────────────────────────────────────────
+  describe('clone', () => {
+    it('lanza BadRequestException si la transacción original es una transferencia', async () => {
+      mockTypeOrmRepo.findOne.mockResolvedValue(
+        buildRecord({ transfer_group_id: 'g1' }),
+      );
+
+      await expect(repo.clone(1, 10, {})).rejects.toThrow(BadRequestException);
+    });
+
+    it('clona una transacción copiando campos y aplicando overrides', async () => {
+      const original = buildRecord({
+        id: 1,
+        category_id: 2,
+        subcategory_id: 3,
+        type: 'expense',
+        amount: 100,
+        currency: 'COP',
+        description: 'Original',
+        transaction_date: new Date('2026-08-01'),
+        company_id: null,
+        account_id: 1,
+      });
+      mockTypeOrmRepo.findOne.mockResolvedValue(original);
+      mockTypeOrmRepo.create.mockImplementation((e: unknown) => e);
+      const cloned = buildRecord({
+        id: 99,
+        category_id: 2,
+        amount: 200,
+        description: 'Clonada',
+        account_id: 1,
+      });
+      mockTypeOrmRepo.save.mockResolvedValue(cloned);
+      mockTypeOrmRepo.findOneBy.mockResolvedValue({
+        id: 1,
+        encrypted_balance: '1000',
+      });
+
+      const result = await repo.clone(1, 10, {
+        amount: 200,
+        description: 'Clonada',
+      });
+
+      expect(result).toEqual(cloned);
+      const createArg = mockTypeOrmRepo.create.mock.calls[0][0] as Record<
+        string,
+        unknown
+      >;
+      expect(createArg.amount).toBe(200);
+      expect(createArg.description).toBe('Clonada');
+      expect(createArg.category_id).toBe(2);
+      expect(createArg.category_status).toBe(ReviewStatusEnum.CATEGORIZED);
+    });
+
+    it('clona usando la categoría por defecto de la empresa si no hay categoría', async () => {
+      const original = buildRecord({
+        id: 1,
+        category_id: null,
+        type: 'expense',
+        amount: 100,
+        description: '',
+        company_id: 5,
+      });
+      mockTypeOrmRepo.findOne.mockResolvedValue(original);
+      mockTypeOrmRepo.create.mockImplementation((e: unknown) => e);
+      mockTypeOrmRepo.save.mockImplementation((e: object) =>
+        Promise.resolve({ ...e, id: 99 }),
+      );
+      mockCategoryRuleRepo.findOne.mockResolvedValue(null);
+      const empresaFindOne = jest
+        .fn()
+        .mockResolvedValue({ default_category_id: 8 });
+      mockManager.getRepository.mockImplementation((entity: unknown) => {
+        if (entity === TransactionRecord) return mockTypeOrmRepo;
+        if (entity === TransactionCategoryRule) return mockCategoryRuleRepo;
+        const name = (entity as { name?: string } | null)?.name;
+        if (name === 'Empresa') return { findOne: empresaFindOne };
+        return linkedRepos.get(name ?? '') ?? mockTypeOrmRepo;
+      });
+
+      const result = await repo.clone(1, 10, {});
+
+      expect(empresaFindOne).toHaveBeenCalled();
+      expect(result.category_id).toBe(8);
+      expect(result.category_status).toBe(ReviewStatusEnum.CATEGORIZED);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // cloneTransfer
+  // ─────────────────────────────────────────────────────────────
+  describe('cloneTransfer', () => {
+    it('lanza NotFoundException si findTransferById no encuentra el registro', async () => {
+      mockTypeOrmRepo.findOne.mockResolvedValue(null);
+
+      await expect(repo.cloneTransfer(1, 10, {})).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('lanza NotFoundException si findTransferById devuelve una lista vacía', async () => {
+      jest.spyOn(repo, 'findTransferById').mockResolvedValue([]);
+
+      await expect(repo.cloneTransfer(1, 10, {})).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('clona ambas piernas de una transferencia completa (cuenta origen y destino)', async () => {
+      const origin = buildRecord({
+        id: 1,
+        transfer_group_id: 'g1',
+        origin_account_id: 100,
+        source_account: 'AHORROS',
+        source_bank: 'Banco A',
+        amount: 50000,
+        currency: 'COP',
+        description: 'Original',
+        transaction_date: '2026-08-01',
+        company_id: null,
+        is_fixed: false,
+      });
+      const destination = buildRecord({
+        id: 2,
+        transfer_group_id: 'g1',
+        destination_account_id: 200,
+        destination_account: 'AHORROS',
+        destination_bank: 'Banco B',
+        objective_id: 3,
+        amount: 50000,
+        currency: 'COP',
+      });
+      mockTypeOrmRepo.findOne.mockResolvedValue(origin);
+      mockTypeOrmRepo.find.mockResolvedValue([origin, destination]);
+      mockTypeOrmRepo.create.mockImplementation((e: unknown) => e);
+      mockTypeOrmRepo.save.mockImplementation((e: unknown) =>
+        Promise.resolve({ ...(e as object), id: Math.random() }),
+      );
+      mockTypeOrmRepo.findOneBy.mockResolvedValue({
+        id: 100,
+        current_balance: 1000,
+        target_amount: 5000,
+        encrypted_balance: '1000000',
+      });
+
+      const result = await repo.cloneTransfer(1, 10, {
+        amount: 60000,
+        description: 'Clonada',
+      });
+
+      expect(result).toHaveLength(2);
+      const [savedOrigin, savedDestination] = result as unknown as Array<
+        Record<string, unknown>
+      >;
+      expect(savedOrigin.origin_account_id).toBe(100);
+      expect(savedOrigin.source_account).toBe('AHORROS');
+      expect(savedDestination.destination_account_id).toBe(200);
+      expect(savedDestination.objective_id).toBe(3);
+      expect(savedDestination.description).toBe('Clonada');
+    });
+
+    it('clona una pierna con destino en un pasivo, usando valores de la plantilla', async () => {
+      const record = buildRecord({
+        id: 1,
+        transfer_group_id: 'g1',
+        liability_id: 4,
+        destination_account: 'CREDIT_CARD',
+        destination_bank: 'Tarjeta X',
+        objective_id: null,
+        amount: 30000,
+        currency: 'COP',
+        source_account: 'AHORROS',
+        source_bank: 'Banco A',
+      });
+      mockTypeOrmRepo.findOne.mockResolvedValue(record);
+      mockTypeOrmRepo.find.mockResolvedValue([record]);
+      mockTypeOrmRepo.create.mockImplementation((e: unknown) => e);
+      mockTypeOrmRepo.save.mockImplementation((e: unknown) =>
+        Promise.resolve({ ...(e as object), id: Math.random() }),
+      );
+      mockTypeOrmRepo.findOneBy.mockResolvedValue({
+        id: 4,
+        current_balance: 1000,
+      });
+
+      const result = await repo.cloneTransfer(1, 10, {});
+
+      expect(result).toHaveLength(1);
+      const [saved] = result as unknown as Array<Record<string, unknown>>;
+      expect(saved.liability_id).toBe(4);
+      expect(saved.source_account).toBe('AHORROS');
+      expect(saved.source_bank).toBe('Banco A');
+    });
+
+    it('usa el monto y fecha originales cuando no se proveen overrides', async () => {
+      const record = buildRecord({
+        id: 1,
+        transfer_group_id: 'g1',
+        origin_account_id: 100,
+        amount: 15000,
+        transaction_date: '2026-07-01',
+        description: 'Movimiento base',
+        currency: 'COP',
+      });
+      mockTypeOrmRepo.findOne.mockResolvedValue(record);
+      mockTypeOrmRepo.find.mockResolvedValue([record]);
+      mockTypeOrmRepo.create.mockImplementation((e: unknown) => e);
+      mockTypeOrmRepo.save.mockImplementation((e: unknown) =>
+        Promise.resolve({ ...(e as object), id: Math.random() }),
+      );
+      mockTypeOrmRepo.findOneBy.mockResolvedValue({
+        id: 100,
+        encrypted_balance: '1000000',
+      });
+
+      const result = await repo.cloneTransfer(1, 10, {});
+
+      const [saved] = result as unknown as Array<Record<string, unknown>>;
+      expect(saved.amount).toBe(15000);
+      expect(saved.transaction_date).toBe('2026-07-01');
+      expect(saved.description).toBe('Movimiento base');
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // findEmpresasForUser
+  // ─────────────────────────────────────────────────────────────
+  describe('findEmpresasForUser', () => {
+    it('consulta empresas activas del usuario vía dataSource.getRepository', async () => {
+      mockEmpresaRepo.find.mockResolvedValue([{ id: 1, name: 'Empresa A' }]);
+
+      const result = await repo.findEmpresasForUser(10);
+
+      expect(mockDataSource.getRepository).toHaveBeenCalledWith(Empresa);
+      expect(result).toEqual([{ id: 1, name: 'Empresa A' }]);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // getSummary: desglose por empresa (by_company)
+  // ─────────────────────────────────────────────────────────────
+  describe('getSummary - desglose por empresa', () => {
+    it('incluye by_company con nombre resuelto y porcentaje del total', async () => {
+      mockQb.getRawMany
+        .mockResolvedValueOnce([
+          { type: 'expense', amount: '1000', count: '2' },
+        ])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          { company_id: '5', amount: '400', count: '1' },
+        ]);
+      mockEmpresaRepo.find.mockResolvedValue([
+        { id: 5, name: 'Empresa A' },
+        { id: 6, name: 'Empresa B' },
+      ]);
+
+      const result = await repo.getSummary(10, {
+        date_from: '2026-08-01',
+        date_to: '2026-08-31',
+      });
+
+      expect(result.by_company).toEqual([
+        {
+          company_id: 5,
+          company_name: 'Empresa A',
+          expenses: 400,
+          count: 1,
+          percent_of_total: 40,
+        },
+      ]);
+    });
+
+    it('usa null como nombre de empresa si no se encuentra en el catálogo', async () => {
+      mockQb.getRawMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          { company_id: '9', amount: '100', count: '1' },
+        ]);
+      mockEmpresaRepo.find.mockResolvedValue([]);
+
+      const result = await repo.getSummary(10, {});
+
+      expect(result.by_company).toEqual([
+        {
+          company_id: 9,
+          company_name: null,
+          expenses: 100,
+          count: 1,
+          percent_of_total: 0,
+        },
+      ]);
     });
   });
 });

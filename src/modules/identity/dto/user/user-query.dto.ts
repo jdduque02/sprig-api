@@ -16,7 +16,7 @@ export enum SortOrder {
   DESC = 'DESC',
 }
 
-export const USER_SORT_FIELDS = [
+const USER_SORT_FIELDS = [
   'username',
   'email',
   'created_at',

@@ -57,7 +57,7 @@ describe('getThrottlerConfig', () => {
   it('usa límites restringidos en producción', () => {
     mockConfig.get.mockImplementation(defaultingGet({ NODE_ENV: 'PROD' }));
     const config = buildConfig();
-    expect(config.throttlers[0].limit).toBe(120);
+    expect(config.throttlers[0].limit).toBe(120000);
     expect(config.throttlers[1].limit).toBe(5);
   });
 

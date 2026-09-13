@@ -2,8 +2,7 @@ pipeline {
     agent any
 
     environment {
-        NODE_VERSION = '22'
-        DOCKER_IMAGE = 'nestjs-app'
+        DOCKER_IMAGE = 'sprig-api'
         DOCKER_TAG = "${env.BUILD_NUMBER}"
         SONARQUBE_ENV = 'SonarQubeServer' // Nombre configurado en Jenkins
     }
@@ -16,41 +15,36 @@ pipeline {
             }
         }
 
+        stage('Setup pnpm') {
+            steps {
+                sh 'corepack enable'
+            }
+        }
+
         stage('Install Dependencies') {
             steps {
-                sh 'npm ci'
+                sh 'pnpm install --frozen-lockfile'
             }
         }
 
         stage('Lint') {
             steps {
-                sh 'npm run lint'
+                sh 'pnpm run lint'
             }
         }
 
         stage('Run Tests') {
             steps {
-                sh 'npm run test -- --coverage'
-            }
-            post {
-                always {
-                    junit 'coverage/lcov-report/*.xml'
-                }
+                sh 'pnpm run test:cov'
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv("${SONARQUBE_ENV}") {
-                    sh '''
-                        npx sonar-scanner \
-                        -Dsonar.projectKey=nestjs-app \
-                        -Dsonar.sources=src \
-                        -Dsonar.tests=src \
-                        -Dsonar.test.inclusions=**/*.spec.ts \
-                        -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
-                        -Dsonar.typescript.tsconfigPath=tsconfig.json
-                    '''
+                    withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+                        sh 'pnpm dlx sonar-scanner -Dsonar.token=$SONAR_TOKEN'
+                    }
                 }
             }
         }
@@ -65,7 +59,7 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
+                sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} -t ${DOCKER_IMAGE}:latest ."
             }
         }
 
@@ -83,7 +77,9 @@ pipeline {
                     sh '''
                         echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
                         docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} $DOCKER_USER/${DOCKER_IMAGE}:${DOCKER_TAG}
+                        docker tag ${DOCKER_IMAGE}:latest $DOCKER_USER/${DOCKER_IMAGE}:latest
                         docker push $DOCKER_USER/${DOCKER_IMAGE}:${DOCKER_TAG}
+                        docker push $DOCKER_USER/${DOCKER_IMAGE}:latest
                     '''
                 }
             }
@@ -111,6 +107,9 @@ pipeline {
     }
 
     post {
+        always {
+            archiveArtifacts artifacts: 'coverage/lcov.info', allowEmptyArchive: true
+        }
         success {
             echo '✅ Pipeline ejecutado correctamente'
         }

@@ -25,7 +25,7 @@ import {
 } from '@shared/enums';
 
 @ValidatorConstraint({ name: 'singlePatrimony', async: false })
-export class SinglePatrimonyConstraint implements ValidatorConstraintInterface {
+class SinglePatrimonyConstraint implements ValidatorConstraintInterface {
   validate(_value: unknown, args: ValidationArguments): boolean {
     const obj = args.object as Record<string, unknown>;
     const count = [obj.account_id, obj.asset_id, obj.liability_id].filter(
@@ -39,11 +39,6 @@ export class SinglePatrimonyConstraint implements ValidatorConstraintInterface {
   }
 }
 
-const ValidateClassDecorator = Validate as unknown as (
-  constraint: unknown,
-) => ClassDecorator;
-
-@ValidateClassDecorator(SinglePatrimonyConstraint)
 export class CreateTransactionRecordDto {
   @ApiPropertyOptional({
     description:
@@ -75,6 +70,16 @@ export class CreateTransactionRecordDto {
   @IsNumber()
   @Min(0)
   amount!: number;
+
+  @ApiPropertyOptional({
+    description: 'Moneda de la transacción (COP o USD).',
+    enum: ['COP', 'USD'],
+    default: 'COP',
+    example: 'COP',
+  })
+  @IsOptional()
+  @IsIn(['COP', 'USD'])
+  currency?: string;
 
   @ApiPropertyOptional({
     description: 'Número de cuotas de la compra (tarjeta crédito).',
@@ -250,6 +255,7 @@ export class CreateTransactionRecordDto {
   @Type(() => Number)
   @IsNumber()
   @Min(1)
+  @Validate(SinglePatrimonyConstraint)
   account_id?: number;
 
   @ApiPropertyOptional({
@@ -261,6 +267,7 @@ export class CreateTransactionRecordDto {
   @Type(() => Number)
   @IsNumber()
   @Min(1)
+  @Validate(SinglePatrimonyConstraint)
   asset_id?: number;
 
   @ApiPropertyOptional({
@@ -272,6 +279,7 @@ export class CreateTransactionRecordDto {
   @Type(() => Number)
   @IsNumber()
   @Min(1)
+  @Validate(SinglePatrimonyConstraint)
   liability_id?: number;
 
   @ApiPropertyOptional({

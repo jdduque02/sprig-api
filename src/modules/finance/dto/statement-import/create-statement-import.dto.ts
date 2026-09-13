@@ -1,6 +1,7 @@
 import {
   IsBooleanString,
   IsEnum,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -95,4 +96,25 @@ export class CreateStatementImportDto {
   @IsInt()
   @Min(1)
   default_company_id?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'ID del pasivo financiero (tarjeta de crédito) al que se asocian las transacciones del extracto.',
+    example: 3,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  liability_id?: number;
+
+  @ApiPropertyOptional({
+    description: 'Moneda de las transacciones del extracto (COP o USD).',
+    enum: ['COP', 'USD'],
+    default: 'COP',
+    example: 'COP',
+  })
+  @IsOptional()
+  @IsIn(['COP', 'USD'])
+  currency?: string;
 }

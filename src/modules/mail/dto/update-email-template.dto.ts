@@ -1,6 +1,18 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsNotEmpty, MaxLength, MinLength } from 'class-validator';
 
+/**
+ * Limpia HTML peligroso de plantillas de correo.
+ * Elimina script, event handlers y javascript: URLs.
+ */
+function sanitizeHtml(html: string): string {
+  return html
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/\bon\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+    .replace(/javascript\s*:/gi, 'void:')
+    .replace(/data\s*:/gi, 'void:');
+}
+
 export class UpdateEmailTemplateDto {
   @ApiProperty({
     description: 'Asunto del correo.',
@@ -19,6 +31,11 @@ export class UpdateEmailTemplateDto {
   @IsString()
   @MinLength(1)
   html_body!: string;
+
+  /** Sanitiza el HTML antes de validarlo. */
+  static sanitize(raw: string): string {
+    return sanitizeHtml(raw);
+  }
 }
 
 export class EmailTemplateResponseDto {

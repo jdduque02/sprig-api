@@ -195,10 +195,7 @@ export class UserRepository {
 
     try {
       const encrypted = this.encryptSensitiveFields(updateUserDto);
-      const updated = this.repo.merge(
-        user,
-        encrypted as unknown as DeepPartial<AppUser>,
-      );
+      const updated = this.repo.merge(user, encrypted);
       const result = await this.repo.save(updated);
       const decrypted = this.decryptSensitiveFields(result);
 
