@@ -23,7 +23,18 @@ describe('AdminLogController', () => {
   // ─────────────────────────────────────────────────────────────
   describe('findAll', () => {
     it('debe delegar al servicio y retornar el listado paginado', async () => {
-      const payload = { data: [{ id: 'app-0', severity: 'INFO', message: 'ok', source: 'app', timestamp: '2025-01-01T00:00:00Z' }], total: 1 };
+      const payload = {
+        data: [
+          {
+            id: 'app-0',
+            severity: 'INFO',
+            message: 'ok',
+            source: 'app',
+            timestamp: '2025-01-01T00:00:00Z',
+          },
+        ],
+        total: 1,
+      };
       mockAdminLogService.findAll.mockResolvedValue(payload);
       const query: SystemLogQueryDto = { page: 1, limit: 20 };
 
@@ -74,11 +85,23 @@ describe('AdminLogController', () => {
     });
 
     it('debe retornar estadísticas con ceros cuando no hay logs', async () => {
-      mockAdminLogService.getStats.mockResolvedValue({ total: 0, info: 0, warn: 0, error: 0, debug: 0 });
+      mockAdminLogService.getStats.mockResolvedValue({
+        total: 0,
+        info: 0,
+        warn: 0,
+        error: 0,
+        debug: 0,
+      });
 
       const result = await controller.getStats();
 
-      expect(result).toEqual({ total: 0, info: 0, warn: 0, error: 0, debug: 0 });
+      expect(result).toEqual({
+        total: 0,
+        info: 0,
+        warn: 0,
+        error: 0,
+        debug: 0,
+      });
     });
   });
 
@@ -87,7 +110,15 @@ describe('AdminLogController', () => {
   // ─────────────────────────────────────────────────────────────
   describe('getRealtime', () => {
     it('debe llamar a streamLogs del servicio', async () => {
-      const logs = [{ id: 'app-0', severity: 'INFO', message: 'ok', source: 'app', timestamp: '2025-01-01T00:00:00Z' }];
+      const logs = [
+        {
+          id: 'app-0',
+          severity: 'INFO',
+          message: 'ok',
+          source: 'app',
+          timestamp: '2025-01-01T00:00:00Z',
+        },
+      ];
       mockAdminLogService.streamLogs.mockResolvedValue(logs);
 
       const result = await controller.getRealtime();

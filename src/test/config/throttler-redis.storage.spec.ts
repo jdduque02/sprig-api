@@ -36,6 +36,23 @@ describe('ThrottlerStorageRedisService', () => {
     expect(redisState.on).toHaveBeenCalledWith('error', expect.any(Function));
   });
 
+  it('loguea un warning cuando Redis emite un error', () => {
+    const loggerWarnSpy = jest.spyOn(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (storage as any).logger,
+      'warn',
+    );
+    const errorHandler = redisState.on.mock.calls.find(
+      ([event]) => event === 'error',
+    )?.[1] as (err: Error) => void;
+
+    errorHandler(new Error('ECONNREFUSED'));
+
+    expect(loggerWarnSpy).toHaveBeenCalledWith(
+      'Redis throttler error: ECONNREFUSED',
+    );
+  });
+
   describe('increment', () => {
     it('retorna bloqueado cuando el bloqueo existe', async () => {
       redisState.get.mockResolvedValue('1');

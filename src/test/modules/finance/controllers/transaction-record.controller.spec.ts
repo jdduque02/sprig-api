@@ -17,6 +17,7 @@ const mockTransactionRecordService = {
   remove: jest.fn(),
   getUpcomingPayments: jest.fn(),
   removeMany: jest.fn(),
+  clone: jest.fn(),
 };
 
 const buildTransaction = (overrides = {}) => ({
@@ -59,6 +60,26 @@ describe('TransactionRecordController', () => {
 
       expect(mockTransactionRecordService.create).toHaveBeenCalledWith(10, dto);
       expect(result).toEqual(created);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // clone
+  // ─────────────────────────────────────────────────────────────
+  describe('clone', () => {
+    it('debe delegar la clonación al servicio', async () => {
+      const cloned = buildTransaction({ id: 99 });
+      mockTransactionRecordService.clone.mockResolvedValue(cloned);
+      const dto = { amount: 20000 };
+
+      const result = await controller.clone(10, 1, dto, currentUser);
+
+      expect(mockTransactionRecordService.clone).toHaveBeenCalledWith(
+        1,
+        10,
+        dto,
+      );
+      expect(result).toEqual(cloned);
     });
   });
 

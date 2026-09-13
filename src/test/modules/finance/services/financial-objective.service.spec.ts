@@ -75,7 +75,7 @@ describe('FinancialObjectiveService', () => {
       const dto: CreateFinancialObjectiveDto = {
         name: 'Fondo de emergencia',
         type: FinancialObjectiveTypeEnum.SAVINGS,
-      } as CreateFinancialObjectiveDto;
+      };
       const created = buildObjective();
       mockFinancialObjectiveRepository.create.mockResolvedValue(created);
 
@@ -206,6 +206,22 @@ describe('FinancialObjectiveService', () => {
       expect(result.target_amount).toBeNull();
       expect(result.amount_to_save).toBeNull();
       expect(result.recommendations.length).toBeGreaterThan(0);
+    });
+
+    it('advierte cuando el saldo actual ya alcanza o supera la meta', async () => {
+      const result = await service.calculateQuota(10, {
+        target_amount: 1000000,
+        current_balance: 1500000,
+        start_date: '2026-01-01',
+        end_date: '2026-12-31',
+        frequency: 'monthly' as never,
+      });
+
+      expect(result.amount_to_save).toBe(0);
+      expect(result.quota_amount).toBe(0);
+      expect(
+        result.warnings.some((w: string) => w.includes('Ya alcanzaste')),
+      ).toBe(true);
     });
 
     it('rechaza rango de fechas inválido', async () => {

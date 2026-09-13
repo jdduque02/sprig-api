@@ -45,6 +45,23 @@ describe('SupportRequestService', () => {
     expect(mockRepo.findAllAdmin).toHaveBeenCalled();
   });
 
+  it('consulta una solicitud puntual del usuario', async () => {
+    mockRepo.findByIdAndUser.mockResolvedValue({ id: 1, user_id: 10 });
+
+    const result = await service.findOne(1, 10);
+
+    expect(mockRepo.findByIdAndUser).toHaveBeenCalledWith(1, 10);
+    expect(result).toEqual({ id: 1, user_id: 10 });
+  });
+
+  it('elimina (soft delete) una solicitud del usuario', async () => {
+    mockRepo.softDelete.mockResolvedValue(undefined);
+
+    await service.remove(1, 10);
+
+    expect(mockRepo.softDelete).toHaveBeenCalledWith(1, 10);
+  });
+
   it('actualiza una solicitud como admin', async () => {
     mockRepo.updateAdmin.mockResolvedValue({
       status: SupportRequestStatusEnum.RESOLVED,

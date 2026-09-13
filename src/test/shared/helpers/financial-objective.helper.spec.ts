@@ -61,7 +61,7 @@ describe('financial-objective.helper', () => {
         is_completed: true,
         completed_at: new Date(),
       };
-      applyCompletion(objective as never);
+      applyCompletion(objective);
       expect(objective.is_completed).toBe(false);
       expect(objective.completed_at).toBeNull();
     });

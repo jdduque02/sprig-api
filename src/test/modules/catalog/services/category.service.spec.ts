@@ -9,6 +9,7 @@ const mockCategoryRepository = {
   findAll: jest.fn(),
   findById: jest.fn(),
   update: jest.fn(),
+  softDelete: jest.fn(),
 };
 
 const buildCategory = (overrides = {}): Category =>
@@ -103,6 +104,19 @@ describe('CategoryService', () => {
 
       expect(mockCategoryRepository.update).toHaveBeenCalledWith(1, dto);
       expect(result.name).toBe('Comida');
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // remove
+  // ─────────────────────────────────────────────────────────────
+  describe('remove', () => {
+    it('debe delegar el borrado lógico al repositorio', async () => {
+      mockCategoryRepository.softDelete.mockResolvedValue(undefined);
+
+      await service.remove(1);
+
+      expect(mockCategoryRepository.softDelete).toHaveBeenCalledWith(1);
     });
   });
 });

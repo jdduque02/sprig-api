@@ -131,16 +131,24 @@ describe('TaxSummaryCalculatorService', () => {
       mockFinancialLiabilityService.findAll.mockResolvedValue([]);
 
       mockTaxSummaryRepo.findOne.mockResolvedValue(null);
-      const createdSummary = mockTaxSummary({
-        total_income: 0,
-        total_assets: 0,
-        total_liabilities: 0,
-        must_declare: false,
-      });
-      mockTaxSummaryRepo.create.mockReturnValue(createdSummary);
-      mockTaxSummaryRepo.save.mockResolvedValue(createdSummary);
+      // create/save deben devolver el objeto real construido por el
+      // servicio (con calculation_notes.validation calculado), no un
+      // fixture estático con calculation_notes: {} — de lo contrario
+      // `result.calculation_notes.validation` sería undefined.
+      mockTaxSummaryRepo.create.mockImplementation(
+        (data: Partial<TaxSummary>) => data,
+      );
+      mockTaxSummaryRepo.save.mockImplementation((entity: TaxSummary) =>
+        Promise.resolve(entity),
+      );
 
-      const result = await service.calculateAndPersist(userId, fiscalYear);
+      // resolveIncome/resolveAssets siempre devuelven un `details` con
+      // estructura (count/series, bank_accounts, etc.), por lo que
+      // missing_data solo se llena cuando falta el valor UVT (o si la
+      // resolución de datos operativos lanza una excepción). Se pasa
+      // uvtValue=0 explícitamente para ejercer esa rama y así validar
+      // is_valid=false junto con warnings y missing_data no vacíos.
+      const result = await service.calculateAndPersist(userId, fiscalYear, 0);
 
       const notes = result.calculation_notes;
       const validation = notes.validation as Record<string, unknown>;
@@ -235,6 +243,60 @@ describe('TaxSummaryCalculatorService', () => {
 
       expect(result.total_income).toBe(0);
       expect(result).toBeDefined();
+    });
+
+    it('should default assets to zero if bankAccountService/financialAssetService fail', async () => {
+      const userId = 10;
+      const fiscalYear = 2026;
+
+      mockTransactionRecordService.getSummary.mockResolvedValue({
+        totals: { income: 1000000, count: 1 },
+        series: [],
+      });
+      mockBankAccountService.findAll.mockRejectedValue(
+        new Error('bank service down'),
+      );
+      mockFinancialAssetService.findAll.mockResolvedValue([]);
+      mockFinancialLiabilityService.findAll.mockResolvedValue([]);
+
+      mockTaxSummaryRepo.findOne.mockResolvedValue(null);
+      mockTaxSummaryRepo.create.mockImplementation(
+        (data: Partial<TaxSummary>) => data,
+      );
+      mockTaxSummaryRepo.save.mockImplementation((entity: TaxSummary) =>
+        Promise.resolve(entity),
+      );
+
+      const result = await service.calculateAndPersist(userId, fiscalYear, 0);
+
+      expect(result.total_assets).toBe(0);
+    });
+
+    it('should default liabilities to zero if financialLiabilityService fails', async () => {
+      const userId = 10;
+      const fiscalYear = 2026;
+
+      mockTransactionRecordService.getSummary.mockResolvedValue({
+        totals: { income: 1000000, count: 1 },
+        series: [],
+      });
+      mockBankAccountService.findAll.mockResolvedValue([]);
+      mockFinancialAssetService.findAll.mockResolvedValue([]);
+      mockFinancialLiabilityService.findAll.mockRejectedValue(
+        new Error('liability service down'),
+      );
+
+      mockTaxSummaryRepo.findOne.mockResolvedValue(null);
+      mockTaxSummaryRepo.create.mockImplementation(
+        (data: Partial<TaxSummary>) => data,
+      );
+      mockTaxSummaryRepo.save.mockImplementation((entity: TaxSummary) =>
+        Promise.resolve(entity),
+      );
+
+      const result = await service.calculateAndPersist(userId, fiscalYear, 0);
+
+      expect(result.total_liabilities).toBe(0);
     });
   });
 

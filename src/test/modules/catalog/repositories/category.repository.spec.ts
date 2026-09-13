@@ -156,4 +156,27 @@ describe('CategoryRepository', () => {
       await expect(repo.update(999, {})).rejects.toThrow(NotFoundException);
     });
   });
+
+  // ─────────────────────────────────────────────────────────────
+  // softDelete
+  // ─────────────────────────────────────────────────────────────
+  describe('softDelete', () => {
+    it('debe desactivar (is_active=false) y guardar la categoría', async () => {
+      const category = buildCategory();
+      mockTypeOrmRepo.findOne.mockResolvedValue(category);
+      mockTypeOrmRepo.save.mockResolvedValue({ ...category, is_active: false });
+
+      await repo.softDelete(1);
+
+      expect(category.is_active).toBe(false);
+      expect(mockTypeOrmRepo.save).toHaveBeenCalledWith(category);
+    });
+
+    it('debe propagar NotFoundException si la categoría no existe', async () => {
+      mockTypeOrmRepo.findOne.mockResolvedValue(null);
+
+      await expect(repo.softDelete(999)).rejects.toThrow(NotFoundException);
+      expect(mockTypeOrmRepo.save).not.toHaveBeenCalled();
+    });
+  });
 });

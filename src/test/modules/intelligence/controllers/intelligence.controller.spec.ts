@@ -93,6 +93,76 @@ describe('IntelligenceController', () => {
     expect(mockService.findTaxSummary).toHaveBeenCalledWith(10, 2024);
   });
 
+  it('calcula y persiste el resumen fiscal usando año y UVT por defecto', async () => {
+    const currentYear = new Date().getFullYear();
+    const calculatedSummary = {
+      id: 1,
+      user_id: 10,
+      fiscal_year: currentYear,
+      total_income: 50_000_000,
+      calculation_notes: {
+        validation: { has_income_data: true },
+        calculated_at: '2026-01-01T00:00:00.000Z',
+        income_sources: ['salario'],
+        assets_breakdown: [{ type: 'cuenta_ahorros', amount: 10_000_000 }],
+        liabilities_breakdown: [],
+      },
+    };
+    mockTaxCalculatorService.calculateAndPersist.mockResolvedValue(
+      calculatedSummary,
+    );
+
+    const result = await controller.calculateTaxSummary(
+      10,
+      currentUser as never,
+    );
+
+    expect(mockTaxCalculatorService.calculateAndPersist).toHaveBeenCalledWith(
+      10,
+      currentYear,
+      undefined,
+    );
+    expect(result).toEqual({
+      id: 1,
+      user_id: 10,
+      fiscal_year: currentYear,
+      total_income: 50_000_000,
+      calculation_notes: calculatedSummary.calculation_notes,
+      validation: { has_income_data: true },
+      calculation_details: {
+        calculated_at: '2026-01-01T00:00:00.000Z',
+        income_sources: ['salario'],
+        assets_breakdown: [{ type: 'cuenta_ahorros', amount: 10_000_000 }],
+        liabilities_breakdown: [],
+      },
+    });
+  });
+
+  it('calcula el resumen fiscal con año y UVT explícitos en query params', async () => {
+    mockTaxCalculatorService.calculateAndPersist.mockResolvedValue({
+      calculation_notes: {
+        validation: {},
+        calculated_at: '2024-01-01T00:00:00.000Z',
+        income_sources: [],
+        assets_breakdown: [],
+        liabilities_breakdown: [],
+      },
+    });
+
+    await controller.calculateTaxSummary(
+      10,
+      currentUser as never,
+      '2024',
+      '47065',
+    );
+
+    expect(mockTaxCalculatorService.calculateAndPersist).toHaveBeenCalledWith(
+      10,
+      2024,
+      47065,
+    );
+  });
+
   it('edita un resumen fiscal existente', async () => {
     const updated = { id: 1, user_id: 10, total_income: 80000000 };
     mockTaxCalculatorService.update.mockResolvedValue(updated);

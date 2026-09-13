@@ -1298,6 +1298,99 @@ describe('StatementImportService', () => {
       expect(mockNotificationService.create).toHaveBeenCalled();
     });
 
+    it('resuelve la empresa por coincidencia difusa cuando capture_companies está activo', async () => {
+      mockParsePdfStatement.mockResolvedValue({
+        transactions: [
+          buildParsedTx({ description: 'PAGO EN ECOPETROL ESTACION' }),
+        ],
+        bank: 'bancolombia',
+      });
+      mockStatementImportRepository.findJobById.mockResolvedValue(
+        buildJob({
+          options: { skip_duplicates: false, capture_companies: true },
+        }),
+      );
+      mockEmpresaRepository.findAll.mockResolvedValue([
+        { id: 7, name: 'Ecopetrol' },
+      ]);
+      mockTransactionRecordRepository.createMany.mockResolvedValue([
+        { id: 99, category_id: 2 },
+      ]);
+
+      await service.createJob(10, [pdfFile], {
+        skip_duplicates: 'false',
+        capture_companies: 'true',
+      });
+      await flushChain();
+      await flushChain();
+
+      expect(mockEmpresaRepository.findAll).toHaveBeenCalledWith(10);
+      expect(mockTransactionRecordRepository.createMany).toHaveBeenCalledWith(
+        10,
+        [expect.objectContaining({ company_id: 7 })],
+        expect.any(Object),
+      );
+    });
+
+    it('no busca empresa por coincidencia difusa si ya hay default_company_id', async () => {
+      mockParsePdfStatement.mockResolvedValue({
+        transactions: [
+          buildParsedTx({ description: 'PAGO EN ECOPETROL ESTACION' }),
+        ],
+      });
+      mockStatementImportRepository.findJobById.mockResolvedValue(
+        buildJob({
+          options: {
+            skip_duplicates: false,
+            capture_companies: true,
+            default_company_id: 3,
+          },
+        }),
+      );
+      mockEmpresaRepository.findAll.mockResolvedValue([
+        { id: 7, name: 'Ecopetrol' },
+      ]);
+      mockTransactionRecordRepository.createMany.mockResolvedValue([
+        { id: 99, category_id: 2 },
+      ]);
+
+      await service.createJob(10, [pdfFile], {
+        skip_duplicates: 'false',
+        capture_companies: 'true',
+        default_company_id: 3,
+      });
+      await flushChain();
+      await flushChain();
+
+      expect(mockTransactionRecordRepository.createMany).toHaveBeenCalledWith(
+        10,
+        [expect.objectContaining({ company_id: 3 })],
+        expect.any(Object),
+      );
+    });
+
+    it('no falla si rm rechaza al limpiar el archivo procesado', async () => {
+      mockParsePdfStatement.mockResolvedValue({
+        transactions: [buildParsedTx()],
+        bank: 'bancolombia',
+      });
+      mockTransactionRecordRepository.createMany.mockResolvedValue([
+        { id: 99, category_id: 2 },
+      ]);
+      (rm as jest.Mock).mockRejectedValue(new Error('fs error'));
+
+      await service.createJob(10, [pdfFile], {
+        skip_duplicates: 'true',
+      });
+      await flushChain();
+      await flushChain();
+
+      expect(
+        mockStatementImportRepository.clearStoragePath,
+      ).toHaveBeenCalledWith(1);
+      expect(mockStatementImportRepository.finishJob).toHaveBeenCalled();
+    });
+
     it('registra el error si la cadena de reintento falla', async () => {
       const errorSpy = jest
         .spyOn(Logger.prototype, 'error')

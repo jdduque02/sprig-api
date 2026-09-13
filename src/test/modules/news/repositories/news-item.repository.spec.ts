@@ -17,7 +17,7 @@ const mockTypeOrmRepo = {
   create: jest.fn((e: Partial<NewsItem>) => e),
   save: jest.fn((e: NewsItem) => ({ id: 1, ...e })),
   findOne: jest.fn(),
-  remove: jest.fn(),
+  softRemove: jest.fn(),
   createQueryBuilder: jest.fn(() => mockQb),
 };
 
@@ -78,10 +78,11 @@ describe('NewsItemRepository', () => {
     expect(result).toEqual([{ id: 1 }]);
   });
 
-  it('findAll sin filtros no aplica andWhere y usa cache con valores vacíos', async () => {
+  it('findAll sin filtros solo aplica el andWhere de deleted_at y usa cache con valores vacíos', async () => {
     mockQb.getMany.mockResolvedValue([]);
     const result = await repository.findAll({});
-    expect(mockQb.andWhere).not.toHaveBeenCalled();
+    expect(mockQb.andWhere).toHaveBeenCalledTimes(1);
+    expect(mockQb.andWhere).toHaveBeenCalledWith('n.deleted_at IS NULL');
     expect(mockQb.cache).toHaveBeenCalledWith(`news:list:::10`, 45_000);
     expect(result).toEqual([]);
   });
@@ -134,10 +135,10 @@ describe('NewsItemRepository', () => {
     expect(result.published_at).toBeNull();
   });
 
-  it('remove elimina la entidad', async () => {
+  it('remove hace soft delete de la entidad', async () => {
     const item = { id: 3, title: 'T' };
     mockTypeOrmRepo.findOne.mockResolvedValue(item);
     await repository.remove(3);
-    expect(mockTypeOrmRepo.remove).toHaveBeenCalledWith(item);
+    expect(mockTypeOrmRepo.softRemove).toHaveBeenCalledWith(item);
   });
 });

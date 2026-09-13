@@ -60,7 +60,7 @@ describe('FinancialObjectiveController', () => {
     const dto: CreateFinancialObjectiveDto = {
       name: 'Fondo de emergencia',
       type: FinancialObjectiveTypeEnum.SAVINGS,
-    } as CreateFinancialObjectiveDto;
+    };
 
     it('debe crear objetivo financiero delegando al servicio', async () => {
       const created = buildObjective();

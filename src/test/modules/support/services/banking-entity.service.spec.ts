@@ -40,11 +40,21 @@ describe('BankingEntityService', () => {
   });
 
   it('delega las operaciones CRUD al repositorio', async () => {
+    const createDto = { code: 'nu', name: 'Nu', detect_patterns: ['Nu'] };
+    mockRepo.create.mockResolvedValue({ id: 1, ...createDto });
+    await service.create(createDto as never);
+    expect(mockRepo.create).toHaveBeenCalledWith(createDto);
+
     await service.findAll();
     expect(mockRepo.findAll).toHaveBeenCalled();
 
     await service.findOne(3);
     expect(mockRepo.findById).toHaveBeenCalledWith(3);
+
+    const updateDto = { name: 'Nu Bank' };
+    mockRepo.update.mockResolvedValue({ id: 3, ...updateDto });
+    await service.update(3, updateDto as never);
+    expect(mockRepo.update).toHaveBeenCalledWith(3, updateDto);
 
     await service.remove(3);
     expect(mockRepo.softDelete).toHaveBeenCalledWith(3);

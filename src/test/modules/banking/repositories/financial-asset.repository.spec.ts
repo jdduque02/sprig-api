@@ -14,6 +14,7 @@ const mockTypeOrmRepo = {
   findOne: jest.fn(),
   merge: jest.fn(),
   softRemove: jest.fn(),
+  update: jest.fn(),
 };
 
 const mockI18nService = {
@@ -139,6 +140,40 @@ describe('FinancialAssetRepository', () => {
       await expect(repo.update(999, 10, dto)).rejects.toThrow(
         NotFoundException,
       );
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // updateQuote
+  // ─────────────────────────────────────────────────────────────
+  describe('updateQuote', () => {
+    it('debe actualizar el precio y la divisa del activo', async () => {
+      mockTypeOrmRepo.update.mockResolvedValue({ affected: 1 });
+
+      await repo.updateQuote(1, 10, 55000, 'USD');
+
+      expect(mockTypeOrmRepo.update).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 1, user_id: 10 }),
+        { current_value: 55000, currency: 'USD' },
+      );
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // findSymbolized
+  // ─────────────────────────────────────────────────────────────
+  describe('findSymbolized', () => {
+    it('debe retornar solo los activos con símbolo asignado', async () => {
+      const list = [buildAsset({ symbol: 'ECOPETROL' })];
+      mockTypeOrmRepo.find.mockResolvedValue(list);
+
+      const result = await repo.findSymbolized(10);
+
+      const [callArg] = mockTypeOrmRepo.find.mock.calls[0] as [
+        { where: { user_id: number } },
+      ];
+      expect(callArg.where.user_id).toBe(10);
+      expect(result).toEqual(list);
     });
   });
 

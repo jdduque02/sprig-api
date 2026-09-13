@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { I18nService } from 'nestjs-i18n';
 import { QueryFailedError } from 'typeorm';
@@ -13,6 +17,7 @@ const mockRepo = {
   find: jest.fn(),
   findOne: jest.fn(),
   merge: jest.fn(),
+  softRemove: jest.fn(),
 };
 
 const mockI18nService = {
@@ -99,6 +104,25 @@ describe('BankingEntityRepository', () => {
     });
   });
 
+  describe('findAll', () => {
+    it('retorna todas las entidades no eliminadas (activas e inactivas)', async () => {
+      const list = [buildEntity(), buildEntity({ id: 2, is_active: false })];
+      mockRepo.find.mockResolvedValue(list);
+
+      const result = await repo.findAll();
+
+      expect(mockRepo.find).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            deleted_at: expect.anything() as unknown,
+          }) as Record<string, unknown>,
+          order: { name: 'ASC' },
+        }),
+      );
+      expect(result).toHaveLength(2);
+    });
+  });
+
   describe('findActiveDetections', () => {
     it('mapea las entidades activas al formato de detección del parser', async () => {
       mockRepo.find.mockResolvedValue([buildEntity()]);
@@ -153,18 +177,29 @@ describe('BankingEntityRepository', () => {
       });
       expect(result.name).toBe('Daviplata S.A.');
     });
+
+    it('lanza InternalServerErrorException para errores de BD distintos a violación de unicidad', async () => {
+      const entity = buildEntity();
+      mockRepo.findOne.mockResolvedValue(entity);
+      mockRepo.merge.mockReturnValue(entity);
+      mockRepo.save.mockRejectedValue(new Error('connection reset'));
+
+      await expect(repo.update(1, { name: 'X' })).rejects.toThrow(
+        InternalServerErrorException,
+      );
+    });
   });
 
   describe('softDelete', () => {
-    it('desactiva la entidad en lugar de borrarla', async () => {
+    it('desactiva y hace soft delete (deleted_at) de la entidad', async () => {
       const entity = buildEntity();
       mockRepo.findOne.mockResolvedValue(entity);
-      mockRepo.save.mockResolvedValue({ ...entity, is_active: false });
+      mockRepo.softRemove.mockResolvedValue({ ...entity, is_active: false });
 
       await repo.softDelete(1);
 
       expect(entity.is_active).toBe(false);
-      expect(mockRepo.save).toHaveBeenCalledWith(entity);
+      expect(mockRepo.softRemove).toHaveBeenCalledWith(entity);
     });
   });
 });

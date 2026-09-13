@@ -1,29 +1,76 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AdminLogService } from '@admin/service/admin-log.service';
 import * as fs from 'node:fs';
-import { SystemLogQueryDto, SystemLogSource } from '@admin/dto/system-log-query.dto';
+import {
+  SystemLogQueryDto,
+  SystemLogSource,
+} from '@admin/dto/system-log-query.dto';
 
 jest.mock('node:fs');
 
 const mockedFs = jest.mocked(fs);
 
 const fallbackContent = [
-  JSON.stringify({ severity: 'INFO', data: 'App started', context: 'Bootstrap', source: 'app', timestamp: '2025-01-01T10:00:00Z' }),
-  JSON.stringify({ severity: 'ERROR', data: { err: 'timeout' }, context: 'HttpModule', source: 'app', timestamp: '2025-01-01T12:00:00Z' }),
-  JSON.stringify({ severity: 'WARN', data: 'Deprecated call', context: 'PaymentService', source: 'app', timestamp: '2025-01-01T11:00:00Z' }),
+  JSON.stringify({
+    severity: 'INFO',
+    data: 'App started',
+    context: 'Bootstrap',
+    source: 'app',
+    timestamp: '2025-01-01T10:00:00Z',
+  }),
+  JSON.stringify({
+    severity: 'ERROR',
+    data: { err: 'timeout' },
+    context: 'HttpModule',
+    source: 'app',
+    timestamp: '2025-01-01T12:00:00Z',
+  }),
+  JSON.stringify({
+    severity: 'WARN',
+    data: 'Deprecated call',
+    context: 'PaymentService',
+    source: 'app',
+    timestamp: '2025-01-01T11:00:00Z',
+  }),
 ].join('\n');
 
 const nestContent = [
-  JSON.stringify({ pid: 1234, timestamp: '2025-01-01T09:00:00Z', level: 'info', context: 'NestApplication', message: 'Nest application started' }),
-  JSON.stringify({ pid: 1234, timestamp: '2025-01-01T13:00:00Z', level: 'debug', context: 'QueryRunner', message: 'SELECT * FROM users' }),
+  JSON.stringify({
+    pid: 1234,
+    timestamp: '2025-01-01T09:00:00Z',
+    level: 'info',
+    context: 'NestApplication',
+    message: 'Nest application started',
+  }),
+  JSON.stringify({
+    pid: 1234,
+    timestamp: '2025-01-01T13:00:00Z',
+    level: 'debug',
+    context: 'QueryRunner',
+    message: 'SELECT * FROM users',
+  }),
 ].join('\n');
 
 const auditContent = [
-  JSON.stringify({ action: 'INSERT', schema_name: 'finance', table_name: 'transaction', record_id: 1, created_at: '2025-01-01T08:00:00Z' }),
-  JSON.stringify({ action: 'DELETE', schema_name: 'finance', table_name: 'transaction', record_id: 2, created_at: '2025-01-01T14:00:00Z' }),
+  JSON.stringify({
+    action: 'INSERT',
+    schema_name: 'finance',
+    table_name: 'transaction',
+    record_id: 1,
+    created_at: '2025-01-01T08:00:00Z',
+  }),
+  JSON.stringify({
+    action: 'DELETE',
+    schema_name: 'finance',
+    table_name: 'transaction',
+    record_id: 2,
+    created_at: '2025-01-01T14:00:00Z',
+  }),
 ].join('\n');
 
-const buildQuery = (overrides: Partial<SystemLogQueryDto> = {}): SystemLogQueryDto => ({
+const buildQuery = (
+  overrides: Partial<SystemLogQueryDto> = {},
+): SystemLogQueryDto => ({
   page: 1,
   limit: 50,
   sortOrder: 'DESC',
@@ -50,7 +97,9 @@ describe('AdminLogService', () => {
         .mockReturnValueOnce(fallbackContent)
         .mockReturnValueOnce(nestContent);
 
-      const result = await service.findAll(buildQuery({ source: SystemLogSource.ALL }));
+      const result = await service.findAll(
+        buildQuery({ source: SystemLogSource.ALL }),
+      );
 
       expect(result.total).toBe(5);
       expect(result.data.length).toBe(5);
@@ -62,7 +111,9 @@ describe('AdminLogService', () => {
         .mockReturnValueOnce(fallbackContent)
         .mockReturnValueOnce(nestContent);
 
-      const result = await service.findAll(buildQuery({ source: SystemLogSource.APP }));
+      const result = await service.findAll(
+        buildQuery({ source: SystemLogSource.APP }),
+      );
 
       expect(result.total).toBe(5);
       expect(result.data.every((e) => e.source !== 'audit')).toBe(true);
@@ -72,7 +123,9 @@ describe('AdminLogService', () => {
       mockedFs.existsSync.mockReturnValue(true);
       mockedFs.readFileSync.mockReturnValueOnce(auditContent);
 
-      const result = await service.findAll(buildQuery({ source: SystemLogSource.AUDIT }));
+      const result = await service.findAll(
+        buildQuery({ source: SystemLogSource.AUDIT }),
+      );
 
       expect(result.total).toBe(2);
       expect(result.data.every((e) => e.source === 'audit')).toBe(true);
@@ -84,7 +137,9 @@ describe('AdminLogService', () => {
         .mockReturnValueOnce(fallbackContent)
         .mockReturnValueOnce(nestContent);
 
-      const result = await service.findAll(buildQuery({ source: SystemLogSource.ALL, severity: 'ERROR' as never }));
+      const result = await service.findAll(
+        buildQuery({ source: SystemLogSource.ALL, severity: 'ERROR' as never }),
+      );
 
       expect(result.data.every((e) => e.severity === 'ERROR')).toBe(true);
     });
@@ -95,7 +150,9 @@ describe('AdminLogService', () => {
         .mockReturnValueOnce(fallbackContent)
         .mockReturnValueOnce(nestContent);
 
-      const result = await service.findAll(buildQuery({ source: SystemLogSource.ALL, context: 'HttpModule' }));
+      const result = await service.findAll(
+        buildQuery({ source: SystemLogSource.ALL, context: 'HttpModule' }),
+      );
 
       expect(result.data.length).toBe(1);
       expect(result.data[0].context).toBe('HttpModule');
@@ -107,10 +164,14 @@ describe('AdminLogService', () => {
         .mockReturnValueOnce(fallbackContent)
         .mockReturnValueOnce(nestContent);
 
-      const result = await service.findAll(buildQuery({ source: SystemLogSource.ALL, search: 'timeout' }));
+      const result = await service.findAll(
+        buildQuery({ source: SystemLogSource.ALL, search: 'timeout' }),
+      );
 
       expect(result.data.length).toBeGreaterThanOrEqual(1);
-      expect(result.data.some((e) => e.message.toLowerCase().includes('timeout'))).toBe(true);
+      expect(
+        result.data.some((e) => e.message.toLowerCase().includes('timeout')),
+      ).toBe(true);
     });
 
     it('debe filtrar por startDate', async () => {
@@ -119,9 +180,20 @@ describe('AdminLogService', () => {
         .mockReturnValueOnce(fallbackContent)
         .mockReturnValueOnce(nestContent);
 
-      const result = await service.findAll(buildQuery({ source: SystemLogSource.ALL, startDate: '2025-01-01T11:00:00Z' }));
+      const result = await service.findAll(
+        buildQuery({
+          source: SystemLogSource.ALL,
+          startDate: '2025-01-01T11:00:00Z',
+        }),
+      );
 
-      expect(result.data.every((e) => new Date(e.timestamp).getTime() >= new Date('2025-01-01T11:00:00Z').getTime())).toBe(true);
+      expect(
+        result.data.every(
+          (e) =>
+            new Date(e.timestamp).getTime() >=
+            new Date('2025-01-01T11:00:00Z').getTime(),
+        ),
+      ).toBe(true);
     });
 
     it('debe filtrar por endDate', async () => {
@@ -130,9 +202,20 @@ describe('AdminLogService', () => {
         .mockReturnValueOnce(fallbackContent)
         .mockReturnValueOnce(nestContent);
 
-      const result = await service.findAll(buildQuery({ source: SystemLogSource.ALL, endDate: '2025-01-01T11:00:00Z' }));
+      const result = await service.findAll(
+        buildQuery({
+          source: SystemLogSource.ALL,
+          endDate: '2025-01-01T11:00:00Z',
+        }),
+      );
 
-      expect(result.data.every((e) => new Date(e.timestamp).getTime() <= new Date('2025-01-01T11:00:00Z').getTime())).toBe(true);
+      expect(
+        result.data.every(
+          (e) =>
+            new Date(e.timestamp).getTime() <=
+            new Date('2025-01-01T11:00:00Z').getTime(),
+        ),
+      ).toBe(true);
     });
 
     it('debe paginar correctamente', async () => {
@@ -141,7 +224,9 @@ describe('AdminLogService', () => {
         .mockReturnValueOnce(fallbackContent)
         .mockReturnValueOnce(nestContent);
 
-      const result = await service.findAll(buildQuery({ source: SystemLogSource.ALL, page: 2, limit: 3 }));
+      const result = await service.findAll(
+        buildQuery({ source: SystemLogSource.ALL, page: 2, limit: 3 }),
+      );
 
       expect(result.data.length).toBe(2);
       expect(result.total).toBe(5);
@@ -153,10 +238,14 @@ describe('AdminLogService', () => {
         .mockReturnValueOnce(fallbackContent)
         .mockReturnValueOnce(nestContent);
 
-      const result = await service.findAll(buildQuery({ source: SystemLogSource.ALL, sortOrder: 'ASC' }));
+      const result = await service.findAll(
+        buildQuery({ source: SystemLogSource.ALL, sortOrder: 'ASC' }),
+      );
 
       for (let i = 1; i < result.data.length; i++) {
-        expect(new Date(result.data[i].timestamp).getTime()).toBeGreaterThanOrEqual(
+        expect(
+          new Date(result.data[i].timestamp).getTime(),
+        ).toBeGreaterThanOrEqual(
           new Date(result.data[i - 1].timestamp).getTime(),
         );
       }
@@ -168,12 +257,14 @@ describe('AdminLogService', () => {
         .mockReturnValueOnce(fallbackContent)
         .mockReturnValueOnce(nestContent);
 
-      const result = await service.findAll(buildQuery({ source: SystemLogSource.ALL }));
+      const result = await service.findAll(
+        buildQuery({ source: SystemLogSource.ALL }),
+      );
 
       for (let i = 1; i < result.data.length; i++) {
-        expect(new Date(result.data[i].timestamp).getTime()).toBeLessThanOrEqual(
-          new Date(result.data[i - 1].timestamp).getTime(),
-        );
+        expect(
+          new Date(result.data[i].timestamp).getTime(),
+        ).toBeLessThanOrEqual(new Date(result.data[i - 1].timestamp).getTime());
       }
     });
   });
@@ -245,7 +336,9 @@ describe('AdminLogService', () => {
     it('debe retornar vacío cuando no existen los archivos', async () => {
       mockedFs.existsSync.mockReturnValue(false);
 
-      const result = await service.findAll(buildQuery({ source: SystemLogSource.ALL }));
+      const result = await service.findAll(
+        buildQuery({ source: SystemLogSource.ALL }),
+      );
 
       expect(result).toEqual({ data: [], total: 0 });
     });
@@ -272,31 +365,87 @@ describe('AdminLogService', () => {
         .mockReturnValueOnce(malformed)
         .mockReturnValueOnce('');
 
-      const result = await service.findAll(buildQuery({ source: SystemLogSource.ALL }));
+      const result = await service.findAll(
+        buildQuery({ source: SystemLogSource.ALL }),
+      );
 
       expect(result.data.length).toBe(2);
     });
 
     it('debe ignorar líneas inválidas en nest-logs.log', async () => {
-      const malformed = nestContent.split('\n')[0] + '\nnot json\n' + nestContent.split('\n')[1];
+      const malformed =
+        nestContent.split('\n')[0] +
+        '\nnot json\n' +
+        nestContent.split('\n')[1];
       mockedFs.existsSync.mockReturnValue(true);
       mockedFs.readFileSync
         .mockReturnValueOnce('')
         .mockReturnValueOnce(malformed);
 
-      const result = await service.findAll(buildQuery({ source: SystemLogSource.ALL }));
+      const result = await service.findAll(
+        buildQuery({ source: SystemLogSource.ALL }),
+      );
 
       expect(result.data.length).toBe(2);
     });
 
     it('debe ignorar líneas inválidas en audit-logs.json', async () => {
-      const malformed = auditContent.split('\n')[0] + '\n{bad}\n' + auditContent.split('\n')[1];
+      const malformed =
+        auditContent.split('\n')[0] + '\n{bad}\n' + auditContent.split('\n')[1];
       mockedFs.existsSync.mockReturnValue(true);
       mockedFs.readFileSync.mockReturnValueOnce(malformed);
 
-      const result = await service.findAll(buildQuery({ source: SystemLogSource.AUDIT }));
+      const result = await service.findAll(
+        buildQuery({ source: SystemLogSource.AUDIT }),
+      );
 
       expect(result.data.length).toBe(2);
+    });
+  });
+
+  describe('errores de lectura de archivos', () => {
+    it('debe capturar el error si falla la lectura de fallback-logs.json y continuar', async () => {
+      mockedFs.existsSync.mockReturnValue(true);
+      mockedFs.readFileSync.mockImplementationOnce(() => {
+        throw new Error('EACCES fallback');
+      });
+      mockedFs.readFileSync.mockReturnValueOnce(nestContent);
+
+      const result = await service.findAll(
+        buildQuery({ source: SystemLogSource.ALL }),
+      );
+
+      expect(result.data.every((e) => e.source !== 'app' || e.id.startsWith('nest'))).toBe(
+        true,
+      );
+      expect(result.total).toBe(2);
+    });
+
+    it('debe capturar el error si falla la lectura de nest-logs.log y continuar', async () => {
+      mockedFs.existsSync.mockReturnValue(true);
+      mockedFs.readFileSync.mockReturnValueOnce(fallbackContent);
+      mockedFs.readFileSync.mockImplementationOnce(() => {
+        throw new Error('EACCES nest');
+      });
+
+      const result = await service.findAll(
+        buildQuery({ source: SystemLogSource.ALL }),
+      );
+
+      expect(result.total).toBe(3);
+    });
+
+    it('debe capturar el error si falla la lectura de audit-logs.json y continuar', async () => {
+      mockedFs.existsSync.mockReturnValue(true);
+      mockedFs.readFileSync.mockImplementationOnce(() => {
+        throw new Error('EACCES audit');
+      });
+
+      const result = await service.findAll(
+        buildQuery({ source: SystemLogSource.AUDIT }),
+      );
+
+      expect(result).toEqual({ data: [], total: 0 });
     });
   });
 });

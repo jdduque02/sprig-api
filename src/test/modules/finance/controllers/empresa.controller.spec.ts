@@ -18,9 +18,7 @@ describe('EmpresaController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [EmpresaController],
-      providers: [
-        { provide: EmpresaService, useValue: mockEmpresaService },
-      ],
+      providers: [{ provide: EmpresaService, useValue: mockEmpresaService }],
     })
       .overrideGuard(AuthGuard)
       .useValue({ canActivate: () => true })

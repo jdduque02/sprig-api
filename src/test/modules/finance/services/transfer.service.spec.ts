@@ -7,6 +7,7 @@ const mockRepo = {
   findTransferById: jest.fn(),
   updateTransfer: jest.fn(),
   softDeleteTransfer: jest.fn(),
+  cloneTransfer: jest.fn(),
 };
 
 const buildRecord = (overrides = {}) =>
@@ -104,6 +105,25 @@ describe('TransferService', () => {
     ]);
     await service.update(1, 10, dto);
     expect(mockRepo.updateTransfer).toHaveBeenCalledWith(1, 10, dto);
+  });
+
+  it('clone delega con id, userId y dto, y mapea la respuesta', async () => {
+    const dto = { amount: 90000 };
+    mockRepo.cloneTransfer.mockResolvedValue([
+      buildRecord({ id: 9, amount: '90000' }),
+      buildRecord({
+        id: 10,
+        amount: '90000',
+        origin_account_id: null,
+        destination_account_id: 200,
+      }),
+    ]);
+
+    const result = await service.clone(1, 10, dto);
+
+    expect(mockRepo.cloneTransfer).toHaveBeenCalledWith(1, 10, dto);
+    expect(result.source.id).toBe(9);
+    expect(result.destination.id).toBe(10);
   });
 
   it('remove hace soft delete de la transferencia', async () => {

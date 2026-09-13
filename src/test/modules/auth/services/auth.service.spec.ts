@@ -332,6 +332,38 @@ describe('AuthService', () => {
       await expect(service.refresh({})).rejects.toThrow(UnauthorizedException);
       expect(mockHttpService.post).not.toHaveBeenCalled();
     });
+
+    it('debe decodificar el access_token y setear userId cuando trae preferred_username', async () => {
+      const payload = Buffer.from(
+        JSON.stringify({ preferred_username: 'jose.duque' }),
+      ).toString('base64url');
+      const tokenResponse = {
+        access_token: `header.${payload}.signature`,
+        refresh_token: 'new-refresh',
+      };
+      mockHttpService.post.mockReturnValue(of(axiosResponse(tokenResponse)));
+      mockUserRepository.findByUsername.mockResolvedValue({ id: '123' });
+
+      const result = await service.refresh(dto);
+
+      expect(mockUserRepository.findByUsername).toHaveBeenCalledWith(
+        'jose.duque',
+      );
+      expect(result.userId).toBe(123);
+    });
+
+    it('debe ignorar silenciosamente un access_token con payload JWT inválido', async () => {
+      const tokenResponse = {
+        access_token: 'header.not-valid-base64-json.signature',
+        refresh_token: 'new-refresh',
+      };
+      mockHttpService.post.mockReturnValue(of(axiosResponse(tokenResponse)));
+
+      const result = await service.refresh(dto);
+
+      expect(mockUserRepository.findByUsername).not.toHaveBeenCalled();
+      expect(result.userId).toBeUndefined();
+    });
   });
 
   // ─────────────────────────────────────────────────────────────

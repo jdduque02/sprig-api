@@ -14,9 +14,7 @@ describe('AdminMailController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AdminMailController],
-      providers: [
-        { provide: MailService, useValue: mockMailService },
-      ],
+      providers: [{ provide: MailService, useValue: mockMailService }],
     })
       .overrideGuard(AuthGuard)
       .useValue({ canActivate: () => true })

@@ -8,10 +8,7 @@ import {
 import { Observable, of, throwError, firstValueFrom } from 'rxjs';
 import { ErrorsInterceptor } from '@shared/interceptors/error.interceptor';
 import { LoggingService } from '@shared/services/logging.service';
-import {
-  I18nService,
-  I18nValidationException,
-} from 'nestjs-i18n';
+import { I18nService, I18nValidationException } from 'nestjs-i18n';
 
 jest.mock('uuid', () => ({
   v4: jest.fn(() => 'trace-id-123'),

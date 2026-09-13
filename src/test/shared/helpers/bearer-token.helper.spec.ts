@@ -1,5 +1,9 @@
 import { UnauthorizedException } from '@nestjs/common';
-import { extractBearerToken } from '@shared/helpers/bearer-token.helper';
+import type { Request } from 'express';
+import {
+  extractAccessToken,
+  extractBearerToken,
+} from '@shared/helpers/bearer-token.helper';
 
 describe('extractBearerToken', () => {
   it('should extract the token from a valid Bearer string', () => {
@@ -25,5 +29,36 @@ describe('extractBearerToken', () => {
     // The helper only checks startsWith('Bearer ') and then slices.
     const result = extractBearerToken(authHeader);
     expect(result).toBe('');
+  });
+});
+
+describe('extractAccessToken', () => {
+  const buildRequest = (overrides: Partial<Request> = {}): Request =>
+    ({
+      headers: {},
+      cookies: {},
+      ...overrides,
+    }) as unknown as Request;
+
+  it('debe extraer el token del header Authorization si está presente', () => {
+    const req = buildRequest({
+      headers: { authorization: 'Bearer header-token' } as never,
+    });
+
+    expect(extractAccessToken(req)).toBe('header-token');
+  });
+
+  it('debe usar la cookie cm_access_token si no hay header Authorization', () => {
+    const req = buildRequest({
+      cookies: { cm_access_token: 'cookie-token' } as never,
+    });
+
+    expect(extractAccessToken(req)).toBe('cookie-token');
+  });
+
+  it('debe lanzar UnauthorizedException si no hay header ni cookie', () => {
+    const req = buildRequest();
+
+    expect(() => extractAccessToken(req)).toThrow(UnauthorizedException);
   });
 });
