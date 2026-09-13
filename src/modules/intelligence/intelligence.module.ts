@@ -17,6 +17,7 @@ import {
 } from '@intelligence/service/financial-ai-analysis.service';
 import { RuleBasedFinancialNarrativeProvider } from '@intelligence/service/rule-based-financial-narrative.provider';
 import { FinancialProfileReportService } from '@intelligence/service/financial-profile-report.service';
+import { CashFlowForecastService } from '@intelligence/service/cash-flow-forecast.service';
 import { IntelligenceController } from '@intelligence/controller/intelligence.controller';
 
 @Module({
@@ -39,6 +40,7 @@ import { IntelligenceController } from '@intelligence/controller/intelligence.co
     TaxSummaryCalculatorService,
     FinancialAiAnalysisService,
     FinancialProfileReportService,
+    CashFlowForecastService,
     {
       provide: FINANCIAL_NARRATIVE_PROVIDER,
       useClass: RuleBasedFinancialNarrativeProvider,

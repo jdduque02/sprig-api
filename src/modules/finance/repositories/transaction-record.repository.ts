@@ -386,6 +386,68 @@ export class TransactionRecordRepository {
   }
 
   /**
+   * Transacciones fijas activas del usuario (cualquier tipo: ingreso, gasto
+   * o inversión), usadas por el forecast de flujo de caja (`intelligence`)
+   * para proyectar ocurrencias futuras vía `nextOccurrence`. `createdUntil`
+   * acota por `created_at` (partition pruning) con un límite superior
+   * seguro: cualquier transacción fija ya registrada tiene `created_at` <=
+   * "hoy", así que este filtro nunca excluye datos válidos, solo permite
+   * podar particiones futuras.
+   */
+  async findAllFixedActive(
+    userId: number,
+    createdUntil: Date,
+  ): Promise<TransactionRecord[]> {
+    return this.repo
+      .createQueryBuilder('tr')
+      .where('tr.user_id = :userId', { userId })
+      .andWhere('tr.deleted_at IS NULL')
+      .andWhere('tr.is_fixed = TRUE')
+      .andWhere('tr.created_at <= :createdUntil', { createdUntil })
+      .getMany();
+  }
+
+  /**
+   * Totales de ingreso/gasto VARIABLE (`is_fixed = FALSE`) del usuario en el
+   * rango de fechas de negocio `[dateFrom, dateTo)`. Usado por el forecast de
+   * flujo de caja (`intelligence`) para promediar el gasto/ingreso diario no
+   * recurrente. `createdUntil` acota por `created_at` (partition pruning)
+   * con el mismo criterio de límite superior seguro que `findAllFixedActive`.
+   */
+  async getVariableTotals(
+    userId: number,
+    dateFrom: string,
+    dateTo: string,
+    createdUntil: Date,
+  ): Promise<{ income: number; expense: number }> {
+    const row = await this.repo
+      .createQueryBuilder('tr')
+      .select(
+        'COALESCE(SUM(CASE WHEN tr.type = :income THEN tr.amount ELSE 0 END), 0)',
+        'income',
+      )
+      .addSelect(
+        'COALESCE(SUM(CASE WHEN tr.type = :expense THEN tr.amount ELSE 0 END), 0)',
+        'expense',
+      )
+      .where('tr.user_id = :userId', { userId })
+      .andWhere('tr.deleted_at IS NULL')
+      .andWhere('tr.is_fixed = FALSE')
+      .andWhere('tr.transaction_date >= :dateFrom', { dateFrom })
+      .andWhere('tr.transaction_date < :dateTo', { dateTo })
+      .andWhere('tr.created_at <= :createdUntil', { createdUntil })
+      .setParameters({
+        income: TransactionTypeEnum.INCOME,
+        expense: TransactionTypeEnum.EXPENSE,
+      })
+      .getRawOne<{ income: string; expense: string }>();
+    return {
+      income: Number(row?.income ?? 0),
+      expense: Number(row?.expense ?? 0),
+    };
+  }
+
+  /**
    * Suscripciones (deducciones fijas) del usuario para calcular el próximo
    * pago. Incluye created_at para partition pruning.
    */

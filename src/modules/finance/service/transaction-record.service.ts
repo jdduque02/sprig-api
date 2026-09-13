@@ -145,4 +145,55 @@ export class TransactionRecordService {
 
     return upcoming;
   }
+
+  /**
+   * Transacciones fijas activas del usuario (cualquier tipo), para que
+   * `intelligence` (cash-flow forecast) proyecte sus ocurrencias futuras
+   * reutilizando `nextOccurrence`. Misma ventana amplia que
+   * `getUpcomingPayments` para cubrir fijas antiguas.
+   */
+  async getFixedTransactions(userId: number) {
+    const createdUntil = new Date();
+    return this.transactionRecordRepository.findAllFixedActive(
+      userId,
+      createdUntil,
+    );
+  }
+
+  /**
+   * Promedio DIARIO de ingreso/gasto VARIABLE (no fijo) de los últimos
+   * `months` meses completos antes de `todayIso`. Fórmula: total del rango /
+   * cantidad de días reales del rango (más preciso que asumir 30 días fijos
+   * por mes, ya que `months` puede abarcar meses de distinta duración).
+   */
+  async getVariableAverageDaily(
+    userId: number,
+    todayIso: string,
+    months: number,
+  ): Promise<{ dailyIncome: number; dailyExpense: number }> {
+    const [year, month, day] = todayIso.split('-').map(Number);
+    const fromDate = new Date(year, month - 1 - months, day);
+    const dateFrom = `${fromDate.getFullYear()}-${String(
+      fromDate.getMonth() + 1,
+    ).padStart(2, '0')}-${String(fromDate.getDate()).padStart(2, '0')}`;
+    const toDate = new Date(year, month - 1, day);
+    const rangeDays = Math.max(
+      1,
+      Math.round((toDate.getTime() - fromDate.getTime()) / DAY_MS),
+    );
+    const createdUntil = new Date();
+
+    const { income, expense } =
+      await this.transactionRecordRepository.getVariableTotals(
+        userId,
+        dateFrom,
+        todayIso,
+        createdUntil,
+      );
+
+    return {
+      dailyIncome: income / rangeDays,
+      dailyExpense: expense / rangeDays,
+    };
+  }
 }

@@ -33,11 +33,13 @@ import { IntelligenceService } from '@intelligence/service/intelligence.service'
 import { FinancialAiAnalysisService } from '@intelligence/service/financial-ai-analysis.service';
 import { FinancialProfileReportService } from '@intelligence/service/financial-profile-report.service';
 import { TaxSummaryCalculatorService } from '@intelligence/service/tax-summary-calculator.service';
+import { CashFlowForecastService } from '@intelligence/service/cash-flow-forecast.service';
 import { FinancialSummaryResponseDto } from '@intelligence/dto/financial-summary-response.dto';
 import { TaxSummaryResponseDto } from '@intelligence/dto/tax-summary-response.dto';
 import { TaxSummaryCalculationResponseDto } from '@intelligence/dto/tax-summary-calculation-response.dto';
 import { UpdateTaxSummaryDto } from '@intelligence/dto/update-tax-summary.dto';
 import { FinancialAiAnalysisResponseDto } from '@intelligence/dto/financial-ai-analysis-response.dto';
+import { CashFlowForecastResponseDto } from '@intelligence/dto/cash-flow-forecast-response.dto';
 import { ErrorResponseDto } from '@shared/dto/error-response.dto';
 
 @ApiTags('intelligence')
@@ -51,7 +53,28 @@ export class IntelligenceController {
     private readonly financialAiAnalysisService: FinancialAiAnalysisService,
     private readonly financialProfileReportService: FinancialProfileReportService,
     private readonly taxSummaryCalculatorService: TaxSummaryCalculatorService,
+    private readonly cashFlowForecastService: CashFlowForecastService,
   ) {}
+
+  @Get('cash-flow-forecast')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'Proyección de flujo de caja a 30/60/90 días combinando ' +
+      'transacciones fijas recurrentes con el promedio histórico de ' +
+      'ingreso/gasto variable.',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Proyección de flujo de caja.',
+    type: CashFlowForecastResponseDto,
+  })
+  async getCashFlowForecast(
+    @Param('userId', ParseIntPipe) userId: number,
+    @CurrentUser() _currentUser: IntrospectResponse,
+  ) {
+    return this.cashFlowForecastService.forecast(userId);
+  }
 
   @Get('financial-summary')
   @HttpCode(HttpStatus.OK)
