@@ -42,7 +42,7 @@ describe('extractAccessToken', () => {
 
   it('debe extraer el token del header Authorization si está presente', () => {
     const req = buildRequest({
-      headers: { authorization: 'Bearer header-token' } as never,
+      headers: { authorization: 'Bearer header-token' },
     });
 
     expect(extractAccessToken(req)).toBe('header-token');

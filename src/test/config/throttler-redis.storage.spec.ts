@@ -37,11 +37,7 @@ describe('ThrottlerStorageRedisService', () => {
   });
 
   it('loguea un warning cuando Redis emite un error', () => {
-    const loggerWarnSpy = jest.spyOn(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (storage as any).logger,
-      'warn',
-    );
+    const loggerWarnSpy = jest.spyOn((storage as any).logger, 'warn');
     const errorHandler = redisState.on.mock.calls.find(
       ([event]) => event === 'error',
     )?.[1] as (err: Error) => void;
