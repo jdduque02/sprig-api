@@ -24,7 +24,10 @@ import { ApiIntrospectGuardResponse } from '@auth/decorators/api-introspect-guar
 import { ErrorResponseDto } from '@shared/dto/error-response.dto';
 import { AdminLogService } from '@admin/service/admin-log.service';
 import { SystemLogQueryDto } from '@admin/dto/system-log-query.dto';
-import { SystemLogEntryDto, SystemLogStatsDto } from '@admin/dto/system-log-response.dto';
+import {
+  SystemLogEntryDto,
+  SystemLogStatsDto,
+} from '@admin/dto/system-log-response.dto';
 import { Observable, interval, switchMap, map } from 'rxjs';
 
 @ApiTags('admin / logs')
@@ -39,15 +42,44 @@ export class AdminLogController {
   @HttpCode(HttpStatus.OK)
   @ApiExtraModels(SystemLogEntryDto)
   @ApiOperation({ summary: 'Listar logs del sistema con filtros' })
-  @ApiQuery({ name: 'severity', required: false, enum: ['INFO', 'WARN', 'ERROR', 'DEBUG'] })
-  @ApiQuery({ name: 'source', required: false, enum: ['app', 'audit', 'all'], default: 'all' })
-  @ApiQuery({ name: 'search', required: false, description: 'Buscar en mensaje/contexto' })
-  @ApiQuery({ name: 'context', required: false, description: 'Filtrar por contexto (módulo)' })
-  @ApiQuery({ name: 'startDate', required: false, description: 'Fecha inicio ISO 8601' })
-  @ApiQuery({ name: 'endDate', required: false, description: 'Fecha fin ISO 8601' })
+  @ApiQuery({
+    name: 'severity',
+    required: false,
+    enum: ['INFO', 'WARN', 'ERROR', 'DEBUG'],
+  })
+  @ApiQuery({
+    name: 'source',
+    required: false,
+    enum: ['app', 'audit', 'all'],
+    default: 'all',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: 'Buscar en mensaje/contexto',
+  })
+  @ApiQuery({
+    name: 'context',
+    required: false,
+    description: 'Filtrar por contexto (módulo)',
+  })
+  @ApiQuery({
+    name: 'startDate',
+    required: false,
+    description: 'Fecha inicio ISO 8601',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: false,
+    description: 'Fecha fin ISO 8601',
+  })
   @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiQuery({ name: 'limit', required: false, example: 50 })
-  @ApiQuery({ name: 'sortBy', required: false, enum: ['timestamp', 'severity'] })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    enum: ['timestamp', 'severity'],
+  })
   @ApiQuery({ name: 'sortOrder', required: false, enum: ['ASC', 'DESC'] })
   @ApiResponse({
     status: HttpStatus.OK,

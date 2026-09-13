@@ -1,8 +1,14 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { SystemLogQueryDto, SystemLogSource } from '@admin/dto/system-log-query.dto';
-import { SystemLogEntryDto, SystemLogStatsDto } from '@admin/dto/system-log-response.dto';
+import {
+  SystemLogQueryDto,
+  SystemLogSource,
+} from '@admin/dto/system-log-query.dto';
+import {
+  SystemLogEntryDto,
+  SystemLogStatsDto,
+} from '@admin/dto/system-log-response.dto';
 
 interface FallbackLogEntry {
   severity: string;
@@ -29,10 +35,15 @@ export class AdminLogService {
     this.logsDir = path.join(process.cwd(), 'logs');
   }
 
-  async findAll(query: SystemLogQueryDto): Promise<{ data: SystemLogEntryDto[]; total: number }> {
+  async findAll(
+    query: SystemLogQueryDto,
+  ): Promise<{ data: SystemLogEntryDto[]; total: number }> {
     const entries: SystemLogEntryDto[] = [];
 
-    if (query.source === SystemLogSource.ALL || query.source === SystemLogSource.APP) {
+    if (
+      query.source === SystemLogSource.ALL ||
+      query.source === SystemLogSource.APP
+    ) {
       entries.push(...this.readFallbackLogs());
       entries.push(...this.readNestLogs());
     }
@@ -41,7 +52,7 @@ export class AdminLogService {
       entries.push(...this.readAuditLogs());
     }
 
-    let filtered = this.applyFilters(entries, query);
+    const filtered = this.applyFilters(entries, query);
 
     filtered.sort((a, b) => {
       const dateA = new Date(a.timestamp).getTime();
@@ -79,7 +90,8 @@ export class AdminLogService {
 
     if (entries.length > 0) {
       const sorted = entries.sort(
-        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+        (a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
       );
       stats.newestEntry = sorted[0]?.timestamp;
       stats.oldestEntry = sorted[sorted.length - 1]?.timestamp;
@@ -92,7 +104,8 @@ export class AdminLogService {
     const entries = this.readFallbackLogs();
     entries.push(...this.readNestLogs());
     return entries.sort(
-      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+      (a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
     );
   }
 
@@ -111,9 +124,15 @@ export class AdminLogService {
           entries.push({
             id: `app-${i}`,
             severity: parsed.severity ?? 'INFO',
-            message: typeof parsed.data === 'string' ? parsed.data : JSON.stringify(parsed.data ?? ''),
+            message:
+              typeof parsed.data === 'string'
+                ? parsed.data
+                : JSON.stringify(parsed.data ?? ''),
             context: parsed.context ?? '',
-            data: typeof parsed.data === 'object' ? (parsed.data as Record<string, unknown>) : undefined,
+            data:
+              typeof parsed.data === 'object'
+                ? (parsed.data as Record<string, unknown>)
+                : undefined,
             source: parsed.source ?? 'app',
             timestamp: parsed.timestamp ?? new Date().toISOString(),
           });
@@ -122,7 +141,9 @@ export class AdminLogService {
         }
       }
     } catch (err) {
-      this.logger.warn(`No se pudo leer fallback-logs.json: ${(err as Error).message}`);
+      this.logger.warn(
+        `No se pudo leer fallback-logs.json: ${(err as Error).message}`,
+      );
     }
 
     return entries;
@@ -153,7 +174,9 @@ export class AdminLogService {
         }
       }
     } catch (err) {
-      this.logger.warn(`No se pudo leer nest-logs.log: ${(err as Error).message}`);
+      this.logger.warn(
+        `No se pudo leer nest-logs.log: ${(err as Error).message}`,
+      );
     }
 
     return entries;
@@ -193,13 +216,18 @@ export class AdminLogService {
         }
       }
     } catch (err) {
-      this.logger.warn(`No se pudo leer audit-logs.json: ${(err as Error).message}`);
+      this.logger.warn(
+        `No se pudo leer audit-logs.json: ${(err as Error).message}`,
+      );
     }
 
     return entries;
   }
 
-  private applyFilters(entries: SystemLogEntryDto[], query: SystemLogQueryDto): SystemLogEntryDto[] {
+  private applyFilters(
+    entries: SystemLogEntryDto[],
+    query: SystemLogQueryDto,
+  ): SystemLogEntryDto[] {
     let result = entries;
 
     if (query.severity) {
@@ -217,7 +245,9 @@ export class AdminLogService {
         (e) =>
           e.message?.toLowerCase().includes(s) ||
           e.context?.toLowerCase().includes(s) ||
-          JSON.stringify(e.data ?? '').toLowerCase().includes(s),
+          JSON.stringify(e.data ?? '')
+            .toLowerCase()
+            .includes(s),
       );
     }
 

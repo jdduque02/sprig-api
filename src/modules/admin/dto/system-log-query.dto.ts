@@ -1,4 +1,11 @@
-import { IsOptional, IsString, IsEnum, IsDateString, Min, Max } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsEnum,
+  IsDateString,
+  Min,
+  Max,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -16,12 +23,19 @@ export enum SystemLogSource {
 }
 
 export class SystemLogQueryDto {
-  @ApiPropertyOptional({ enum: SystemLogSeverity, description: 'Filtrar por severidad' })
+  @ApiPropertyOptional({
+    enum: SystemLogSeverity,
+    description: 'Filtrar por severidad',
+  })
   @IsOptional()
   @IsEnum(SystemLogSeverity)
   severity?: SystemLogSeverity;
 
-  @ApiPropertyOptional({ enum: SystemLogSource, default: 'all', description: 'Fuente del log' })
+  @ApiPropertyOptional({
+    enum: SystemLogSource,
+    default: 'all',
+    description: 'Fuente del log',
+  })
   @IsOptional()
   @IsEnum(SystemLogSource)
   source?: SystemLogSource;
@@ -31,7 +45,9 @@ export class SystemLogQueryDto {
   @IsString()
   search?: string;
 
-  @ApiPropertyOptional({ description: 'Filtrar por contexto (módulo/servicio)' })
+  @ApiPropertyOptional({
+    description: 'Filtrar por contexto (módulo/servicio)',
+  })
   @IsOptional()
   @IsString()
   context?: string;
@@ -59,7 +75,10 @@ export class SystemLogQueryDto {
   @Max(200)
   limit?: number = 50;
 
-  @ApiPropertyOptional({ default: 'timestamp', enum: ['timestamp', 'severity'] })
+  @ApiPropertyOptional({
+    default: 'timestamp',
+    enum: ['timestamp', 'severity'],
+  })
   @IsOptional()
   @IsString()
   sortBy?: string = 'timestamp';
