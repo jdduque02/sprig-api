@@ -39,11 +39,6 @@ class SinglePatrimonyConstraint implements ValidatorConstraintInterface {
   }
 }
 
-const ValidateClassDecorator = Validate as unknown as (
-  constraint: unknown,
-) => ClassDecorator;
-
-@ValidateClassDecorator(SinglePatrimonyConstraint)
 export class CreateTransactionRecordDto {
   @ApiPropertyOptional({
     description:
@@ -260,6 +255,7 @@ export class CreateTransactionRecordDto {
   @Type(() => Number)
   @IsNumber()
   @Min(1)
+  @Validate(SinglePatrimonyConstraint)
   account_id?: number;
 
   @ApiPropertyOptional({
@@ -271,6 +267,7 @@ export class CreateTransactionRecordDto {
   @Type(() => Number)
   @IsNumber()
   @Min(1)
+  @Validate(SinglePatrimonyConstraint)
   asset_id?: number;
 
   @ApiPropertyOptional({
@@ -282,6 +279,7 @@ export class CreateTransactionRecordDto {
   @Type(() => Number)
   @IsNumber()
   @Min(1)
+  @Validate(SinglePatrimonyConstraint)
   liability_id?: number;
 
   @ApiPropertyOptional({

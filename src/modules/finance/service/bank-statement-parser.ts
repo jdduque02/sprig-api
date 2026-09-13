@@ -141,7 +141,10 @@ export async function extractTextLines(
     void doc.destroy?.();
   }
 
-  const maxX = Math.max(...tokens.map((t) => t.x), 1);
+  let maxX = 1;
+  for (const token of tokens) {
+    if (token.x > maxX) maxX = token.x;
+  }
 
   const lines: TextLine[] = [];
   for (const token of tokens) {

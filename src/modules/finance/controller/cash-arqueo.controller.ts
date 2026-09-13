@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Get,
   Post,
@@ -9,8 +10,10 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  Inject,
   UseGuards,
 } from '@nestjs/common';
+import { I18nService } from 'nestjs-i18n';
 import {
   ApiTags,
   ApiOperation,
@@ -33,13 +36,18 @@ import {
 } from '@finance/dto/cash-arqueo/cash-arqueo-response.dto';
 import { ErrorResponseDto } from '@shared/dto/error-response.dto';
 
+const MONTH_FORMAT = /^\d{4}-(0[1-9]|1[0-2])$/;
+
 @ApiTags('finance')
 @UseGuards(AuthGuard, OwnershipGuard)
 @ApiIntrospectGuardResponse()
 @ApiBearerAuth('bearer')
 @Controller('users/:userId/cash-arqueos')
 export class CashArqueoController {
-  constructor(private readonly cashArqueoService: CashArqueoService) {}
+  constructor(
+    private readonly cashArqueoService: CashArqueoService,
+    @Inject(I18nService) private readonly i18n: I18nService,
+  ) {}
 
   @Get('reconciliation')
   @HttpCode(HttpStatus.OK)
@@ -69,6 +77,11 @@ export class CashArqueoController {
     @Query('month') month: string,
     @CurrentUser() _currentUser: IntrospectResponse,
   ) {
+    if (!month || !MONTH_FORMAT.test(month)) {
+      throw new BadRequestException(
+        this.i18n.t('finance.CASH_ARQUEO_INVALID_MONTH'),
+      );
+    }
     return this.cashArqueoService.getReconciliation(userId, month);
   }
 

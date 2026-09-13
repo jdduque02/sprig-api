@@ -98,4 +98,3 @@ export class StatementImportResponseDto {
   @ApiProperty({ type: [StatementImportFileResponseDto] })
   files!: StatementImportFileResponseDto[];
 }
-

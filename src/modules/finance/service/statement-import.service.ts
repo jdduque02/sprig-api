@@ -52,10 +52,7 @@ export interface StatementImportJobOptions {
   default_company_id?: number;
 }
 
-interface StatementImportProgressPayload extends Record<
-  string,
-  unknown
-> {
+interface StatementImportProgressPayload extends Record<string, unknown> {
   id: number;
   status: StatementImportStatusEnum;
   total_files: number;

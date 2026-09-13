@@ -26,8 +26,12 @@ class DistinctTransferEntitiesConstraint implements ValidatorConstraintInterface
       destination_liability_id?: number;
     };
     if (!obj.source_account_id) return false;
-    const hasDestAccount = obj.destination_account_id !== undefined && obj.destination_account_id !== null;
-    const hasDestLiability = obj.destination_liability_id !== undefined && obj.destination_liability_id !== null;
+    const hasDestAccount =
+      obj.destination_account_id !== undefined &&
+      obj.destination_account_id !== null;
+    const hasDestLiability =
+      obj.destination_liability_id !== undefined &&
+      obj.destination_liability_id !== null;
     return hasDestAccount !== hasDestLiability;
   }
 

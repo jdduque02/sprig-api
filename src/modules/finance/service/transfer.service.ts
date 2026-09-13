@@ -72,7 +72,11 @@ export class TransferService {
     userId: number,
     dto: CloneTransferDto,
   ): Promise<TransferResponseDto> {
-    const pair = await this.transactionRecordRepository.cloneTransfer(id, userId, dto);
+    const pair = await this.transactionRecordRepository.cloneTransfer(
+      id,
+      userId,
+      dto,
+    );
     return this.toResponseDto(pair);
   }
 
@@ -95,7 +99,9 @@ export class TransferService {
     const first = pair[0];
     const source = pair.find((r) => r.origin_account_id != null) ?? first;
     const destination =
-      pair.find((r) => r.destination_account_id != null || r.liability_id != null) ?? first;
+      pair.find(
+        (r) => r.destination_account_id != null || r.liability_id != null,
+      ) ?? first;
 
     return {
       transfer_group_id: first.transfer_group_id ?? '',
@@ -125,8 +131,7 @@ export class TransferService {
         side === 'source'
           ? record.origin_account_id
           : record.destination_account_id,
-      liability_id:
-        side === 'destination' ? record.liability_id : null,
+      liability_id: side === 'destination' ? record.liability_id : null,
       side,
       bank_name:
         side === 'source'

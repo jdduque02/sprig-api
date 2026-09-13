@@ -682,8 +682,8 @@ export class TransactionRecordRepository {
       }
       const destinationRecord = recordRepo.create(destinationData);
 
-      const savedOrigin = (await recordRepo.save(origin)) as TransactionRecord;
-      const savedDestination = (await recordRepo.save(destinationRecord)) as TransactionRecord;
+      const savedOrigin = await recordRepo.save(origin);
+      const savedDestination = await recordRepo.save(destinationRecord);
       await this.applyTransferAdjustment(manager, savedOrigin, 1);
       await this.applyTransferAdjustment(manager, savedDestination, 1);
 
@@ -769,7 +769,8 @@ export class TransactionRecordRepository {
       if (dto.fixed_type !== undefined) fields.fixed_type = dto.fixed_type;
       if (dto.frequency !== undefined) fields.frequency = dto.frequency;
       if (dto.due_day !== undefined) fields.due_day = dto.due_day;
-      if (dto.reminder_days !== undefined) fields.reminder_days = dto.reminder_days;
+      if (dto.reminder_days !== undefined)
+        fields.reminder_days = dto.reminder_days;
       for (const record of records) {
         const merged = recordRepo.merge(record, fields);
         if (
@@ -1176,7 +1177,9 @@ export class TransactionRecordRepository {
 
     const template =
       records.find((r) => r.origin_account_id != null) ??
-      records.find((r) => r.destination_account_id != null || r.liability_id != null) ??
+      records.find(
+        (r) => r.destination_account_id != null || r.liability_id != null,
+      ) ??
       records[0];
     const originalAmount = Number(template.amount ?? 0);
     const newAmount = dto.amount ?? originalAmount;
@@ -1228,7 +1231,9 @@ export class TransactionRecordRepository {
           clonedData.objective_id = record.objective_id;
         }
 
-        const savedRecord = await recordRepo.save(recordRepo.create(clonedData));
+        const savedRecord = await recordRepo.save(
+          recordRepo.create(clonedData),
+        );
         await this.applyTransferAdjustment(manager, savedRecord, 1);
         saved.push(savedRecord);
       }
