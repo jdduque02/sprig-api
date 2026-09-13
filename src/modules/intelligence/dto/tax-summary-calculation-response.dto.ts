@@ -4,7 +4,8 @@ import { TaxSummaryResponseDto } from './tax-summary-response.dto';
 export class TaxSummaryValidationDto {
   @ApiProperty({
     example: true,
-    description: 'Si el cálculo es válido (todos los datos requeridos están disponibles)',
+    description:
+      'Si el cálculo es válido (todos los datos requeridos están disponibles)',
   })
   is_valid!: boolean;
 

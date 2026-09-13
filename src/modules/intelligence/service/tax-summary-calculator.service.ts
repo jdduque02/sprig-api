@@ -198,7 +198,9 @@ export class TaxSummaryCalculatorService {
       notes.assets_risk = 'MISSING_OR_ZERO';
     }
     if (!assets.details || Object.keys(assets.details).length === 0) {
-      missing.push('Desglose de activos (cuentas bancarias, activos financieros)');
+      missing.push(
+        'Desglose de activos (cuentas bancarias, activos financieros)',
+      );
     }
 
     // Liabilities validation
@@ -290,10 +292,7 @@ export class TaxSummaryCalculatorService {
         },
       };
     } catch (error) {
-      this.logger.warn(
-        `Error fetching assets for user ${userId}`,
-        error,
-      );
+      this.logger.warn(`Error fetching assets for user ${userId}`, error);
       return { total: 0, details: {} };
     }
   }
@@ -320,10 +319,7 @@ export class TaxSummaryCalculatorService {
         },
       };
     } catch (error) {
-      this.logger.warn(
-        `Error fetching liabilities for user ${userId}`,
-        error,
-      );
+      this.logger.warn(`Error fetching liabilities for user ${userId}`, error);
       return { total: 0, details: {} };
     }
   }
