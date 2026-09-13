@@ -87,7 +87,8 @@ Usa **siempre `pnpm`**. Nunca `npm` ni `yarn`.
 3. Escribir/actualizar tests unitarios y e2e.
 4. Correr `pnpm lint`, `pnpm test`, `pnpm test:e2e`.
 5. Invocar las skills de la sección 4 que apliquen (security-review, code-review, etc.).
-6. Resumir qué se hizo, qué deuda técnica se tocó, y qué quedó pendiente de decisión del usuario (fórmulas de negocio no especificadas, año fiscal DIAN usado).
+6. Persistir en el brain (sección 12) la información relevante nueva que hayas encontrado.
+7. Resumir qué se hizo, qué deuda técnica se tocó, y qué quedó pendiente de decisión del usuario (fórmulas de negocio no especificadas, año fiscal DIAN usado).
 
 ## 11. Qué NO hacer
 
@@ -98,3 +99,26 @@ Usa **siempre `pnpm`**. Nunca `npm` ni `yarn`.
 - No hardcodear reglas tributarias colombianas (UVT, umbrales DIAN) sin dejar explícita la fuente/año.
 - No usar el MCP `github` para acciones destructivas o de escritura sin confirmación explícita.
 - No dar una feature por terminada sin sus tests y sin pasar el gate de calidad.
+
+## 12. Cerebro persistente de contexto (`brain-sprig`)
+
+`C:\DLLO\brain-sprig` es el cerebro de contexto de largo plazo de Sprig: un repo de conocimiento
+complementario a `Sprig-api`, no código ejecutable. Guarda lo que el código por sí solo no cuenta (el
+*por qué*, lo aprendido, el estado del proyecto en el tiempo).
+
+- **Siempre que encuentres información relevante nueva durante tu trabajo** — decisiones de
+  arquitectura, gotchas técnicos, deuda técnica, aprendizajes, cambios de operación/deploy, referencias
+  externas — persístela en el archivo correspondiente del brain antes de dar la tarea por terminada.
+- Estructura del brain (lee siempre `C:\DLLO\brain-sprig\README.md` antes de escribir en él):
+  - `conocimientos/` — conocimiento estable (¿qué es y cómo funciona?); una ficha por módulo en `modulos/`.
+  - `decisiones/` — ADRs (`NNN-titulo.md` nuevo por decisión, nunca editar uno viejo salvo para marcarlo superado).
+  - `aprendizajes/` — lecciones y gotchas (¿qué aprendimos para no repetir?).
+  - `manejo/` — operación (entornos, deploy/CI/CD, seguridad).
+  - `historial/` — bitácora cronológica (`YYYY-MM-DD-tema.md` por sesión/hito).
+  - `referencias/` — punteros externos (repos hermanos, MCPs).
+  - `glosario.md` — términos del dominio con dónde se usan.
+- Regla de oro: **no dupliques** lo que se puede derivar leyendo el código de `Sprig-api` o `agent.md`/
+  `CLAUDE.md` (reglas operativas = fuente de verdad en `Sprig-api`). El brain solo guarda el contexto de
+  largo plazo: el por qué, lo aprendido y el estado en el tiempo.
+- Por cada tarea, registra en `historial/` una entrada cronológica con qué se hizo, en qué rama y qué
+  quedó pendiente.
