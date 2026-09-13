@@ -29,7 +29,7 @@ services:
     ports:
       - "127.0.0.1:6379:6379"
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a $${REDIS_PASSWORD} ping | grep -q PONG"]
+      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD} ping | grep -q PONG"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -70,25 +70,26 @@ services:
       - "127.0.0.1:${KEYCLOAK_HTTP_PORT:-8080}:8080"
     restart: unless-stopped
 
-  # Job de una sola corrida: aplica migraciones TypeORM antes de arrancar el backend.
+  # Job de una sola corrida: aplica schema.sql + migrations/*.sql pendientes
+  # (ver scripts/apply-schema.sh — el `migration:run` de TypeORM no sirve
+  # aquí porque las migraciones reales del repo son SQL plano, no .ts/.js).
   migrator:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: builder
+    image: postgres:16-alpine
     container_name: sprig_stage_migrator
     depends_on:
       postgres:
         condition: service_healthy
     environment:
-      NODE_ENV: ${NODE_ENV:-STAGE}
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USER: ${DB_USER:?DB_USER no definido}
-      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD no definido}
-      DB_NAME: ${DB_NAME:-cost_manager}
-      DB_SSL: "false"
-    command: ["pnpm", "run", "migration:run"]
+      PGHOST: postgres
+      PGPORT: 5432
+      PGUSER: ${DB_USER:?DB_USER no definido}
+      PGPASSWORD: ${DB_PASSWORD:?DB_PASSWORD no definido}
+      PGDATABASE: ${DB_NAME:-cost_manager}
+    volumes:
+      - ./schema.sql:/work/schema.sql:ro
+      - ./migrations:/work/migrations:ro
+      - ./scripts/apply-schema.sh:/work/apply-schema.sh:ro
+    entrypoint: ["sh", "/work/apply-schema.sh"]
     restart: "no"
 
   backend:

@@ -9,11 +9,7 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import {
-  I18nService,
-  I18nContext,
-  I18nValidationException,
-} from 'nestjs-i18n';
+import { I18nService, I18nContext, I18nValidationException } from 'nestjs-i18n';
 
 /**
  * Filtro global que captura excepciones lanzadas por Guards, Pipes y Controllers

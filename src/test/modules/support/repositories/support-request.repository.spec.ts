@@ -140,9 +140,7 @@ describe('SupportRequestRepository', () => {
     it('lanza NotFoundException si no existe', async () => {
       mockRepo.findOne.mockResolvedValue(null);
 
-      await expect(repo.findByIdAdmin(999)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(repo.findByIdAdmin(999)).rejects.toThrow(NotFoundException);
     });
   });
 

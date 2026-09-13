@@ -174,9 +174,7 @@ describe('HttpExceptionFilter', () => {
       response.json.mock.calls[0] as unknown[]
     )[0] as FilterResponseBody;
     expect(body.details).toEqual([]);
-    expect(body.message).toBe(
-      'Campos con errores de validación: ',
-    );
+    expect(body.message).toBe('Campos con errores de validación: ');
   });
 
   it('debe usar this.i18n inyectado por constructor cuando I18nContext.current no resuelve nada', () => {

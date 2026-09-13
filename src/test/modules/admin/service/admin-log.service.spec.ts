@@ -415,9 +415,9 @@ describe('AdminLogService', () => {
         buildQuery({ source: SystemLogSource.ALL }),
       );
 
-      expect(result.data.every((e) => e.source !== 'app' || e.id.startsWith('nest'))).toBe(
-        true,
-      );
+      expect(
+        result.data.every((e) => e.source !== 'app' || e.id.startsWith('nest')),
+      ).toBe(true);
       expect(result.total).toBe(2);
     });
 

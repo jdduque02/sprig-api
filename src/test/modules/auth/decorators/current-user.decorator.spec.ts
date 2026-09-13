@@ -37,7 +37,10 @@ describe('CurrentUser decorator', () => {
 
   it('debe extraer el usuario autenticado desde request.user', () => {
     const factory = getFactory();
-    const user = { sub: 'kc-uuid', userId: 10 } as unknown as IntrospectResponse;
+    const user = {
+      sub: 'kc-uuid',
+      userId: 10,
+    } as unknown as IntrospectResponse;
     const context = {
       switchToHttp: () => ({
         getRequest: () => ({ user }),

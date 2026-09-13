@@ -13,11 +13,7 @@ import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
 import { LoggingService } from '@shared/services/logging.service';
-import {
-  I18nContext,
-  I18nService,
-  I18nValidationException,
-} from 'nestjs-i18n';
+import { I18nContext, I18nService, I18nValidationException } from 'nestjs-i18n';
 import { Request } from 'express';
 @Injectable()
 /**
