@@ -18,7 +18,6 @@ Estado verificado el 15 de agosto de 2026:
 
 ## Stack tecnológico
 
-
 - Framework: NestJS 11
 - Runtime: Node.js / TypeScript
 - Base de datos: PostgreSQL con TypeORM
@@ -113,6 +112,7 @@ Detalles del flujo:
 ### Banca (cuentas, activos y pasivos)
 
 **Cuentas bancarias**
+
 - `POST /users/:userId/bank-accounts`
 - `GET /users/:userId/bank-accounts`
 - `GET /users/:userId/bank-accounts/:id`
@@ -120,6 +120,7 @@ Detalles del flujo:
 - `DELETE /users/:userId/bank-accounts/:id`
 
 **Activos financieros**
+
 - `POST /users/:userId/financial-assets`
 - `GET /users/:userId/financial-assets`
 - `GET /users/:userId/financial-assets/:id`
@@ -127,6 +128,7 @@ Detalles del flujo:
 - `DELETE /users/:userId/financial-assets/:id`
 
 **Pasivos financieros**
+
 - `POST /users/:userId/financial-liabilities`
 - `GET /users/:userId/financial-liabilities`
 - `GET /users/:userId/financial-liabilities/:id`
@@ -136,12 +138,14 @@ Detalles del flujo:
 ### Catálogo (categorías y subcategorías)
 
 **Categorías**
+
 - `POST /catalog/categories`
 - `GET /catalog/categories`
 - `GET /catalog/categories/:id`
 - `PATCH /catalog/categories/:id`
 
 **Subcategorías**
+
 - `POST /users/:userId/catalog/subcategories`
 - `GET /users/:userId/catalog/subcategories`
 - `GET /users/:userId/catalog/subcategories/:id`
@@ -151,6 +155,7 @@ Detalles del flujo:
 ### Finanzas (transacciones, objetivos y períodos)
 
 **Transacciones**
+
 - `POST /users/:userId/transactions`
 - `GET /users/:userId/transactions`
 - `GET /users/:userId/transactions/:id`
@@ -158,6 +163,7 @@ Detalles del flujo:
 - `DELETE /users/:userId/transactions/:id`
 
 **Objetivos financieros**
+
 - `POST /users/:userId/financial-objectives`
 - `GET /users/:userId/financial-objectives`
 - `GET /users/:userId/financial-objectives/:id`
@@ -165,12 +171,14 @@ Detalles del flujo:
 - `DELETE /users/:userId/financial-objectives/:id`
 
 **Pagos de objetivos**
+
 - `POST /users/:userId/financial-objectives/:objectiveId/payments`
 - `GET /users/:userId/financial-objectives/:objectiveId/payments`
 - `GET /users/:userId/financial-objectives/:objectiveId/payments/:id`
 - `DELETE /users/:userId/financial-objectives/:objectiveId/payments/:id`
 
 **Períodos financieros**
+
 - `POST /users/:userId/financial-periods`
 - `GET /users/:userId/financial-periods`
 - `GET /users/:userId/financial-periods/:id`
