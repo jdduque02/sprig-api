@@ -18,8 +18,8 @@ describe('brand meta', () => {
   });
 
   it('define la metadata de Swagger y el remitente de mails', () => {
-    expect(BRAND_META.docsTagline).toContain(BRAND_META.appName);
-    expect(BRAND_META.docsDescription).toContain('API');
+    expect(BRAND_META.docsTagline).toContain('Documentación interactiva');
+    expect(BRAND_META.docsDescription).toContain(BRAND_META.appName);
     expect(BRAND_META.version).toBe('1');
     expect(BRAND_META.fromEmail).toContain('@');
   });
