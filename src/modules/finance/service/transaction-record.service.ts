@@ -17,6 +17,25 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const SUBSCRIPTION_WINDOW_DAYS = 370 * 10; // cubre suscripciones anuales antiguas
 const SUMMARY_TTL_MS = 45_000;
 
+/**
+ * Resta `months` meses a `date` evitando el "rollover" de fin de mes: si el
+ * día de `date` no existe en el mes destino (ej. 31 de enero - 1 mes),
+ * se ajusta ("clamp") al último día válido de ese mes en vez de desbordar
+ * al mes siguiente (bug ya detectado y corregido en otro punto del repo,
+ * ej. `financial-objective.service.ts`).
+ */
+function subtractMonthsClamped(date: Date, months: number): Date {
+  const targetMonthIndex = date.getMonth() - months;
+  const firstOfTargetMonth = new Date(date.getFullYear(), targetMonthIndex, 1);
+  const daysInTargetMonth = new Date(
+    firstOfTargetMonth.getFullYear(),
+    firstOfTargetMonth.getMonth() + 1,
+    0,
+  ).getDate();
+  firstOfTargetMonth.setDate(Math.min(date.getDate(), daysInTargetMonth));
+  return firstOfTargetMonth;
+}
+
 @Injectable()
 export class TransactionRecordService {
   private readonly logger = new Logger(TransactionRecordService.name);
@@ -172,11 +191,11 @@ export class TransactionRecordService {
     months: number,
   ): Promise<{ dailyIncome: number; dailyExpense: number }> {
     const [year, month, day] = todayIso.split('-').map(Number);
-    const fromDate = new Date(year, month - 1 - months, day);
+    const toDate = new Date(year, month - 1, day);
+    const fromDate = subtractMonthsClamped(toDate, months);
     const dateFrom = `${fromDate.getFullYear()}-${String(
       fromDate.getMonth() + 1,
     ).padStart(2, '0')}-${String(fromDate.getDate()).padStart(2, '0')}`;
-    const toDate = new Date(year, month - 1, day);
     const rangeDays = Math.max(
       1,
       Math.round((toDate.getTime() - fromDate.getTime()) / DAY_MS),
