@@ -15,11 +15,13 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import cookieParser from 'cookie-parser';
+import type { NextFunction, Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { getRabbitMQConfig } from '@config/rabbitmq.config';
 import { getCsrfProtection } from '@config/csrf.config';
 import { FileLogger } from '@shared/services/file-logger';
 import { DataSource } from 'typeorm';
+import { BRAND_META } from '@config/brand';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -79,7 +81,7 @@ async function bootstrap() {
     const csrfMiddleware = getCsrfProtection(configService);
     // Skip CSRF for requests with Bearer token (mobile/SPA clients use Authorization header,
     // not cookies, so CSRF protection is not needed).
-    app.use((req, res, next) => {
+    app.use((req: Request, res: Response, next: NextFunction) => {
       const authHeader = req.headers.authorization;
       if (authHeader && authHeader.startsWith('Bearer ')) {
         return next();
@@ -89,7 +91,7 @@ async function bootstrap() {
   }
 
   // Global Prefix for all routes (e.g., /api/v1)
-  const apiVersion = configService.get<string>('VERSION') ?? '1';
+  const apiVersion = configService.get<string>('VERSION') ?? BRAND_META.version;
   const globalPrefix = `api/v${apiVersion}`;
   app.setGlobalPrefix(globalPrefix);
 
@@ -98,7 +100,7 @@ async function bootstrap() {
   // expone datos sensibles — solo el estado up/down de cada dependencia.
 
   // --- Swagger (deshabilitado en producción) ---
-  const swaggerVersion = configService.get<string>('VERSION') ?? '1';
+  const swaggerVersion = configService.get<string>('VERSION') ?? BRAND_META.version;
   if (!isProd) {
     const config = getSwaggerConfig(configService);
     const documentFactory = () => SwaggerModule.createDocument(app, config);
@@ -114,7 +116,7 @@ async function bootstrap() {
     SwaggerModule.setup(`api/v${swaggerVersion}/docs`, app, documentFactory, {
       customCss: getSwaggerCustomCss(),
       customJsStr: getSwaggerCustomJs(logoBase64),
-      customSiteTitle: 'Sprig API Docs',
+      customSiteTitle: BRAND_META.docsSiteTitle,
       customfavIcon: `data:image/svg+xml;base64,${logoBase64}`,
       jsonDocumentUrl: `api/v${swaggerVersion}/docs-json`,
       yamlDocumentUrl: `api/v${swaggerVersion}/docs-yaml`,

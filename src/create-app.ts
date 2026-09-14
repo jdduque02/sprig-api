@@ -16,6 +16,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import cookieParser from 'cookie-parser';
+import type { NextFunction, Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { getCsrfProtection } from '@config/csrf.config';
 import { FileLogger } from '@shared/services/file-logger';
@@ -89,7 +90,7 @@ export async function createNestApp(): Promise<INestApplication> {
     const csrfMiddleware = getCsrfProtection(configService);
     // Skip CSRF for requests with Bearer token (mobile/SPA clients use Authorization header,
     // not cookies, so CSRF protection is not needed).
-    app.use((req, res, next) => {
+    app.use((req: Request, res: Response, next: NextFunction) => {
       const authHeader = req.headers.authorization;
       if (authHeader && authHeader.startsWith('Bearer ')) {
         return next();
