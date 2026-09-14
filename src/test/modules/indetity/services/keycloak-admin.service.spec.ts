@@ -43,7 +43,7 @@ const mockCacheManager = {
 };
 
 const mockI18nService = {
-  t: jest.fn((key: string) => `[${key}]`),
+  t: jest.fn((key: string): string | undefined => `[${key}]`),
 };
 
 const axiosResponse = <T>(

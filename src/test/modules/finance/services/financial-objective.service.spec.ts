@@ -6,6 +6,7 @@ import { FinancialObjectiveRepository } from '@finance/repositories/financial-ob
 import { FinancialProfileRepository } from '@identity/repositories/financial-profile.repository';
 import { UserRepository } from '@identity/repositories/app-user.repositories';
 import { AuditLogService } from '@audit/service/audit-log.service';
+import { TransactionRecordService } from '@finance/service/transaction-record.service';
 import { CreateFinancialObjectiveDto } from '@finance/dto/financial-objective/create-financial-objective.dto';
 import { UpdateFinancialObjectiveDto } from '@finance/dto/financial-objective/update-financial-objective.dto';
 import { FinancialObjectiveTypeEnum } from '@shared/enums';
@@ -36,6 +37,10 @@ const mockI18nService = {
   t: jest.fn((key: string) => `[${key}]`),
 };
 
+const mockTransactionRecordService = {
+  getSummary: jest.fn(),
+};
+
 const buildObjective = (overrides = {}) => ({
   id: 1,
   user_id: 10,
@@ -62,6 +67,10 @@ describe('FinancialObjectiveService', () => {
         },
         { provide: UserRepository, useValue: mockUserRepository },
         { provide: AuditLogService, useValue: mockAuditLogService },
+        {
+          provide: TransactionRecordService,
+          useValue: mockTransactionRecordService,
+        },
         { provide: I18nService, useValue: mockI18nService },
       ],
     }).compile();
@@ -121,6 +130,104 @@ describe('FinancialObjectiveService', () => {
       );
 
       await expect(service.findOne(999, 10)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('months_of_expenses_covered (fondo de emergencia)', () => {
+    it('NO calcula el indicador para objetivos que no son emergency_fund', async () => {
+      const objective = buildObjective({
+        type: FinancialObjectiveTypeEnum.SAVINGS,
+      });
+      mockFinancialObjectiveRepository.findById.mockResolvedValue(objective);
+
+      const result = await service.findOne(1, 10);
+
+      expect(mockTransactionRecordService.getSummary).not.toHaveBeenCalled();
+      expect(result).not.toHaveProperty('months_of_expenses_covered');
+    });
+
+    it('calcula current_balance / gasto mensual promedio para emergency_fund', async () => {
+      const objective = buildObjective({
+        type: FinancialObjectiveTypeEnum.EMERGENCY_FUND,
+        current_balance: 9000000,
+      });
+      mockFinancialObjectiveRepository.findById.mockResolvedValue(objective);
+      mockUserRepository.findById.mockResolvedValue({
+        timezone: 'America/Bogota',
+      });
+      // Gasto total de 9.000.000 en 3 meses => promedio mensual 3.000.000.
+      mockTransactionRecordService.getSummary.mockResolvedValue({
+        totals: { income: 0, expenses: 9000000, investments: 0, count: 5 },
+      });
+
+      const result = await service.findOne(1, 10);
+
+      expect(mockTransactionRecordService.getSummary).toHaveBeenCalledWith(
+        10,
+        expect.objectContaining({
+          type: 'expense',
+          date_from: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) as string,
+          date_to: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) as string,
+        }),
+      );
+      expect(result.months_of_expenses_covered).toBe(3);
+    });
+
+    it('devuelve null cuando no hay gasto histórico para promediar', async () => {
+      const objective = buildObjective({
+        type: FinancialObjectiveTypeEnum.EMERGENCY_FUND,
+        current_balance: 5000000,
+      });
+      mockFinancialObjectiveRepository.findById.mockResolvedValue(objective);
+      mockUserRepository.findById.mockResolvedValue({
+        timezone: 'America/Bogota',
+      });
+      mockTransactionRecordService.getSummary.mockResolvedValue({
+        totals: { income: 0, expenses: 0, investments: 0, count: 0 },
+      });
+
+      const result = await service.findOne(1, 10);
+
+      expect(result.months_of_expenses_covered).toBeNull();
+    });
+
+    it('usa zona horaria por defecto si el usuario no se encuentra', async () => {
+      const objective = buildObjective({
+        type: FinancialObjectiveTypeEnum.EMERGENCY_FUND,
+        current_balance: 1000000,
+      });
+      mockFinancialObjectiveRepository.findById.mockResolvedValue(objective);
+      mockUserRepository.findById.mockRejectedValue(new Error('no user'));
+      mockTransactionRecordService.getSummary.mockResolvedValue({
+        totals: { income: 0, expenses: 3000000, investments: 0, count: 2 },
+      });
+
+      const result = await service.findOne(1, 10);
+
+      expect(result.months_of_expenses_covered).toBe(1);
+    });
+
+    it('aplica el indicador a cada objetivo emergency_fund en findAll', async () => {
+      const objectives = [
+        buildObjective({ id: 1, type: FinancialObjectiveTypeEnum.SAVINGS }),
+        buildObjective({
+          id: 2,
+          type: FinancialObjectiveTypeEnum.EMERGENCY_FUND,
+          current_balance: 6000000,
+        }),
+      ];
+      mockFinancialObjectiveRepository.findAll.mockResolvedValue(objectives);
+      mockUserRepository.findById.mockResolvedValue({
+        timezone: 'America/Bogota',
+      });
+      mockTransactionRecordService.getSummary.mockResolvedValue({
+        totals: { income: 0, expenses: 6000000, investments: 0, count: 3 },
+      });
+
+      const result = await service.findAll(10);
+
+      expect(result[0]).not.toHaveProperty('months_of_expenses_covered');
+      expect(result[1].months_of_expenses_covered).toBe(3);
     });
   });
 

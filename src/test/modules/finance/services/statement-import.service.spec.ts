@@ -81,7 +81,7 @@ const mockEmpresaRepository = {
 };
 
 const mockI18n = {
-  t: jest.fn((key: string) => key),
+  t: jest.fn((key: string, options?: unknown) => key),
 };
 
 const buildJob = (overrides: Partial<StatementImport> = {}): StatementImport =>
@@ -143,7 +143,7 @@ const pdfFile = {
   mimetype: 'application/pdf',
   size: 1234,
   buffer: pdfBuffer,
-};
+} as unknown as Express.Multer.File;
 
 /** Descarga la cola de procesamiento asíncrono encadenada en el servicio. */
 const flushChain = (): Promise<void> =>
@@ -217,7 +217,7 @@ describe('StatementImportService', () => {
         mimetype: 'text/plain',
         size: 10,
         buffer: Buffer.from('hola'),
-      };
+      } as unknown as Express.Multer.File;
       await expect(
         service.createJob(10, [txt], { skip_duplicates: 'true' }),
       ).rejects.toThrow(BadRequestException);
@@ -294,7 +294,7 @@ describe('StatementImportService', () => {
         mimetype: 'text/plain',
         size: 10,
         buffer: pdfBuffer,
-      };
+      } as unknown as Express.Multer.File;
 
       await service.createJob(10, [file], { skip_duplicates: 'true' });
 
@@ -311,13 +311,17 @@ describe('StatementImportService', () => {
     });
 
     it('usa nombres y mimetypes por defecto cuando el archivo no los trae', async () => {
-      const file = { mimetype: 'application/pdf', size: 10, buffer: pdfBuffer };
+      const file = {
+        mimetype: 'application/pdf',
+        size: 10,
+        buffer: pdfBuffer,
+      } as unknown as Express.Multer.File;
       const fileConMimetypeVacio = {
         originalname: 'nota.pdf',
         mimetype: '',
         size: 10,
         buffer: pdfBuffer,
-      };
+      } as unknown as Express.Multer.File;
 
       await service.createJob(10, [file, fileConMimetypeVacio], {
         skip_duplicates: 'true',

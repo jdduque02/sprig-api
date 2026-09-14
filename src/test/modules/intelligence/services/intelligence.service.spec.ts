@@ -24,7 +24,7 @@ const buildFinancialSummary = (overrides = {}) =>
     calculated_at: new Date(),
     is_final: false,
     ...overrides,
-  }) as FinancialSummary;
+  }) as unknown as FinancialSummary;
 
 const buildTaxSummary = (overrides = {}) =>
   ({

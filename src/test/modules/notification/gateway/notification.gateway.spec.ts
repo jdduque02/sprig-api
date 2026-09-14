@@ -82,6 +82,7 @@ describe('NotificationService', () => {
   beforeEach(() => {
     service = new NotificationService(
       mockGateway as unknown as NotificationGateway,
+      {} as never,
     );
     jest.clearAllMocks();
   });
@@ -327,7 +328,7 @@ describe('NotificationGateway — métodos de emisión', () => {
         id: 'socket-1',
         data: { user: { sub: 'kc-uuid' } },
       };
-      expect(() => gateway.handleConnection(socket)).not.toThrow();
+      expect(() => gateway.handleConnection(socket as never)).not.toThrow();
       expect(mockPresenceService.markOnline).not.toHaveBeenCalled();
     });
 
@@ -336,22 +337,22 @@ describe('NotificationGateway — métodos de emisión', () => {
         id: 'socket-1',
         data: { user: { sub: 'kc-uuid', userId: 7 } },
       };
-      gateway.handleConnection(socket);
+      gateway.handleConnection(socket as never);
 
       expect(mockPresenceService.markOnline).toHaveBeenCalledWith(7);
-      expect(socket.data.user_id).toBe(7);
+      expect(socket.data!.user_id).toBe(7);
     });
 
     it('handleConnection sin usuario no marca online', () => {
       const socket: MockSocketClient = { id: 'socket-1', data: {} };
-      gateway.handleConnection(socket);
+      gateway.handleConnection(socket as never);
 
       expect(mockPresenceService.markOnline).not.toHaveBeenCalled();
     });
 
     it('handleDisconnect no debe lanzar excepción', () => {
       const socket: MockSocketClient = { id: 'socket-1', data: {} };
-      expect(() => gateway.handleDisconnect(socket)).not.toThrow();
+      expect(() => gateway.handleDisconnect(socket as never)).not.toThrow();
       expect(mockPresenceService.markOffline).not.toHaveBeenCalled();
     });
 
@@ -360,7 +361,7 @@ describe('NotificationGateway — métodos de emisión', () => {
         id: 'socket-1',
         data: { user_id: 10 },
       };
-      gateway.handleDisconnect(socket);
+      gateway.handleDisconnect(socket as never);
 
       expect(mockPresenceService.markOffline).toHaveBeenCalledWith(10);
     });
@@ -375,10 +376,10 @@ describe('NotificationGateway — métodos de emisión', () => {
         data: { user: { userId: 10 } },
       };
 
-      gateway.handleSubscribe({ user_id: 10 }, client);
+      gateway.handleSubscribe({ user_id: 10 }, client as never);
 
       expect(join).toHaveBeenCalledWith(NOTIFICATION_ROOMS.user(10));
-      expect(client.data.user_id).toBe(10);
+      expect(client.data!.user_id).toBe(10);
     });
 
     it('debe lanzar WsException si el user_id no coincide con el autenticado', () => {
@@ -389,9 +390,9 @@ describe('NotificationGateway — métodos de emisión', () => {
         data: { user: { userId: 10 } },
       };
 
-      expect(() => gateway.handleSubscribe({ user_id: 99 }, client)).toThrow(
-        WsException,
-      );
+      expect(() =>
+        gateway.handleSubscribe({ user_id: 99 }, client as never),
+      ).toThrow(WsException);
       expect(join).not.toHaveBeenCalled();
     });
 
@@ -403,9 +404,9 @@ describe('NotificationGateway — métodos de emisión', () => {
         data: {},
       };
 
-      expect(() => gateway.handleSubscribe({ user_id: 10 }, client)).toThrow(
-        WsException,
-      );
+      expect(() =>
+        gateway.handleSubscribe({ user_id: 10 }, client as never),
+      ).toThrow(WsException);
       expect(join).not.toHaveBeenCalled();
     });
   });
@@ -419,7 +420,7 @@ describe('NotificationGateway — métodos de emisión', () => {
         data: { user: { userId: 10 } },
       };
 
-      gateway.handleUnsubscribe({ user_id: 10 }, client);
+      gateway.handleUnsubscribe({ user_id: 10 }, client as never);
 
       expect(leave).toHaveBeenCalledWith(NOTIFICATION_ROOMS.user(10));
     });
@@ -432,9 +433,9 @@ describe('NotificationGateway — métodos de emisión', () => {
         data: { user: { userId: 10 } },
       };
 
-      expect(() => gateway.handleUnsubscribe({ user_id: 99 }, client)).toThrow(
-        WsException,
-      );
+      expect(() =>
+        gateway.handleUnsubscribe({ user_id: 99 }, client as never),
+      ).toThrow(WsException);
       expect(leave).not.toHaveBeenCalled();
     });
   });
@@ -443,7 +444,7 @@ describe('NotificationGateway — métodos de emisión', () => {
     it('no debe lanzar excepción al recibir el evento', () => {
       const client: MockSocketClient = { id: 'socket-1', data: {} };
       expect(() =>
-        gateway.handleMarkAsRead({ notification_id: 5 }, client),
+        gateway.handleMarkAsRead({ notification_id: 5 }, client as never),
       ).not.toThrow();
     });
   });
@@ -454,12 +455,12 @@ describe('NotificationGateway — métodos de emisión', () => {
         id: 'socket-1',
         data: { user_id: 10 },
       };
-      expect(() => gateway.handleMarkAllAsRead(client)).not.toThrow();
+      expect(() => gateway.handleMarkAllAsRead(client as never)).not.toThrow();
     });
 
     it('no debe lanzar excepción cuando el cliente no tiene user_id', () => {
       const client: MockSocketClient = { id: 'socket-1', data: {} };
-      expect(() => gateway.handleMarkAllAsRead(client)).not.toThrow();
+      expect(() => gateway.handleMarkAllAsRead(client as never)).not.toThrow();
     });
   });
 

@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ThrottlerStorageRedisService } from '@config/throttler-redis.storage';
 
@@ -37,12 +38,15 @@ describe('ThrottlerStorageRedisService', () => {
   });
 
   it('loguea un warning cuando Redis emite un error', () => {
-    const loggerWarnSpy = jest.spyOn((storage as any).logger, 'warn');
-    const errorHandler = redisState.on.mock.calls.find(
-      ([event]) => event === 'error',
-    )?.[1] as (err: Error) => void;
+    const loggerWarnSpy = jest.spyOn(
+      (storage as unknown as { logger: Logger }).logger,
+      'warn',
+    );
+    const errorHandler = (
+      redisState.on.mock.calls as Array<[string, (err: Error) => void]>
+    ).find(([event]) => event === 'error')?.[1];
 
-    errorHandler(new Error('ECONNREFUSED'));
+    errorHandler!(new Error('ECONNREFUSED'));
 
     expect(loggerWarnSpy).toHaveBeenCalledWith(
       'Redis throttler error: ECONNREFUSED',

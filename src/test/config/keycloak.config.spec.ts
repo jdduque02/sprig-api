@@ -1,6 +1,10 @@
 import { ConfigService } from '@nestjs/config';
 import { getKeycloakConfig } from '@config/keycloak.config';
-import { PolicyEnforcementMode, TokenValidation } from 'nest-keycloak-connect';
+import {
+  KeycloakConnectConfig,
+  PolicyEnforcementMode,
+  TokenValidation,
+} from 'nest-keycloak-connect';
 
 describe('getKeycloakConfig', () => {
   let mockConfigService: Partial<ConfigService>;
@@ -41,6 +45,6 @@ describe('getKeycloakConfig', () => {
       return 'value';
     });
     const config = getKeycloakConfig(mockConfigService as ConfigService);
-    expect(config.secret).toBe('');
+    expect((config as KeycloakConnectConfig).secret).toBe('');
   });
 });

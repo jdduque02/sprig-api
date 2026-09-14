@@ -20,7 +20,7 @@ const buildPeriod = (overrides = {}) => ({
   ...overrides,
 });
 
-const currentUser: IntrospectResponse = { sub: 'kc-uuid' };
+const currentUser: IntrospectResponse = { active: true, sub: 'kc-uuid' };
 
 describe('FinancialPeriodController', () => {
   let controller: FinancialPeriodController;

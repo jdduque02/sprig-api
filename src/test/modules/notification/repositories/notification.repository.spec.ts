@@ -19,7 +19,7 @@ const buildNotification = (overrides = {}) =>
 
 const mockRepo = {
   create: jest.fn((e: Partial<Notification>) => e),
-  save: jest.fn((e: Notification) => ({ id: 1, ...e })),
+  save: jest.fn((e: Notification) => ({ ...e, id: 1 })),
   findOne: jest.fn(),
   find: jest.fn(),
   merge: jest.fn((n: Notification, dto: Partial<Notification>) => ({

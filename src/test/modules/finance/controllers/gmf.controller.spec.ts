@@ -6,7 +6,7 @@ const mockGmfService = {
   getSummary: jest.fn(),
 };
 
-const currentUser: IntrospectResponse = { sub: 'kc-uuid' };
+const currentUser: IntrospectResponse = { active: true, sub: 'kc-uuid' };
 
 describe('GmfController', () => {
   let controller: GmfController;

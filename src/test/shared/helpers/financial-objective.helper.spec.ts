@@ -84,7 +84,7 @@ describe('financial-objective.helper', () => {
       const progress = computeObjectiveProgress({
         current_balance: 500,
         target_amount: 1000,
-        end_date: new Date(Date.now() + 10 * 86400000).toISOString(),
+        end_date: new Date(Date.now() + 10 * 86400000).toISOString() as never,
       });
       expect(progress.amount_remaining).toBe(500);
       expect(progress.progress_percent).toBe(50);
@@ -95,7 +95,7 @@ describe('financial-objective.helper', () => {
       const progress = computeObjectiveProgress({
         current_balance: 1000,
         target_amount: 1000,
-        end_date: new Date(Date.now() - 86400000).toISOString(),
+        end_date: new Date(Date.now() - 86400000).toISOString() as never,
       });
       expect(progress.days_remaining).toBe(0);
       expect(progress.amount_remaining).toBe(0);
@@ -105,7 +105,7 @@ describe('financial-objective.helper', () => {
       const progress = computeObjectiveProgress({
         current_balance: 100,
         target_amount: 200,
-        end_date: null,
+        end_date: null as never,
       });
       expect(progress.days_remaining).toBeNull();
       expect(progress.progress_percent).toBe(50);
@@ -115,16 +115,16 @@ describe('financial-objective.helper', () => {
       const progress = computeObjectiveProgress({
         current_balance: 100,
         target_amount: 0,
-        end_date: null,
+        end_date: null as never,
       });
       expect(progress.progress_percent).toBe(0);
     });
 
     it('devuelve progreso null cuando no hay monto objetivo', () => {
       const progress = computeObjectiveProgress({
-        current_balance: null,
+        current_balance: null as never,
         target_amount: null,
-        end_date: null,
+        end_date: null as never,
       });
       expect(progress.amount_remaining).toBeNull();
       expect(progress.progress_percent).toBeNull();

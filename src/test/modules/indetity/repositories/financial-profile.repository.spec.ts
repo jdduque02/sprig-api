@@ -82,7 +82,7 @@ describe('FinancialProfileRepository', () => {
       mockTypeOrmRepo.create.mockReturnValue(profile);
       mockTypeOrmRepo.save.mockResolvedValue(profile);
 
-      const result = await repo.create(2, dto);
+      const result = await repo.create('2', dto);
       expect(result.user_id).toBe(2);
       expect(mockTypeOrmRepo.save).toHaveBeenCalledTimes(1);
     });
@@ -93,7 +93,7 @@ describe('FinancialProfileRepository', () => {
       mockTypeOrmRepo.create.mockReturnValue(profile);
       mockTypeOrmRepo.save.mockResolvedValue(profile);
 
-      const result = await repo.create(2, { ...dto, monthly_income: 6000 });
+      const result = await repo.create('2', { ...dto, monthly_income: 6000 });
       expect(mockEncryptionService.encryptField).toHaveBeenCalledWith(
         '6000',
         'finance',
@@ -104,7 +104,7 @@ describe('FinancialProfileRepository', () => {
     it('debe lanzar ConflictException si ya existe un perfil para el usuario', async () => {
       mockTypeOrmRepo.findOne.mockResolvedValue(buildProfile()); // ya existe
 
-      await expect(repo.create(2, dto)).rejects.toThrow(ConflictException);
+      await expect(repo.create('2', dto)).rejects.toThrow(ConflictException);
       expect(mockTypeOrmRepo.save).not.toHaveBeenCalled();
     });
   });
@@ -117,7 +117,7 @@ describe('FinancialProfileRepository', () => {
       const profile = buildProfile();
       mockTypeOrmRepo.findOne.mockResolvedValue(profile);
 
-      const result = await repo.findByUserId(2);
+      const result = await repo.findByUserId('2');
       expect(result.user_id).toBe(2);
     });
 
@@ -126,7 +126,7 @@ describe('FinancialProfileRepository', () => {
       mockTypeOrmRepo.findOne.mockResolvedValue(profile);
       mockEncryptionService.decryptField.mockReturnValue('5000');
 
-      const result = await repo.findByUserId(2);
+      const result = await repo.findByUserId('2');
       expect(mockEncryptionService.decryptField).toHaveBeenCalledWith(
         'encrypted-5000',
         'finance',
@@ -139,13 +139,13 @@ describe('FinancialProfileRepository', () => {
       mockTypeOrmRepo.findOne.mockResolvedValue(profile);
       mockEncryptionService.decryptField.mockReturnValue('');
 
-      const result = await repo.findByUserId(2);
+      const result = await repo.findByUserId('2');
       expect(result.monthly_income).toBeNull();
     });
 
     it('debe lanzar NotFoundException si no existe el perfil', async () => {
       mockTypeOrmRepo.findOne.mockResolvedValue(null);
-      await expect(repo.findByUserId(99)).rejects.toThrow(NotFoundException);
+      await expect(repo.findByUserId('99')).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -163,7 +163,7 @@ describe('FinancialProfileRepository', () => {
       const dto: UpdateFinancialProfileDto = {
         needs_ratio: 60,
       };
-      const result = await repo.update(2, dto);
+      const result = await repo.update('2', dto);
       expect(result.needs_ratio).toBe(60);
       expect(mockTypeOrmRepo.merge).toHaveBeenCalledWith(original, dto);
     });
@@ -178,7 +178,7 @@ describe('FinancialProfileRepository', () => {
         (value: string | null | undefined) => value,
       );
 
-      const result = await repo.update(2, { monthly_income: 7000 });
+      const result = await repo.update('2', { monthly_income: 7000 });
       expect(mockEncryptionService.encryptField).toHaveBeenCalledWith(
         '7000',
         'finance',
@@ -191,7 +191,7 @@ describe('FinancialProfileRepository', () => {
       const dto: UpdateFinancialProfileDto = {
         needs_ratio: 60,
       };
-      await expect(repo.update(99, dto)).rejects.toThrow(NotFoundException);
+      await expect(repo.update('99', dto)).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -204,13 +204,13 @@ describe('FinancialProfileRepository', () => {
       mockTypeOrmRepo.findOne.mockResolvedValue(profile);
       mockTypeOrmRepo.remove.mockResolvedValue(undefined);
 
-      await expect(repo.remove(2)).resolves.toBeUndefined();
+      await expect(repo.remove('2')).resolves.toBeUndefined();
       expect(mockTypeOrmRepo.remove).toHaveBeenCalledWith(profile);
     });
 
     it('debe lanzar NotFoundException si el perfil no existe', async () => {
       mockTypeOrmRepo.findOne.mockResolvedValue(null);
-      await expect(repo.remove(99)).rejects.toThrow(NotFoundException);
+      await expect(repo.remove('99')).rejects.toThrow(NotFoundException);
     });
   });
 });

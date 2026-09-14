@@ -1,8 +1,19 @@
 import { ConfigService } from '@nestjs/config';
 import { databaseConfig } from '@config/database.config';
-import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 
-type DatabaseFactory = (configService: ConfigService) => TypeOrmModuleOptions;
+interface DbConfigResult {
+  type: string;
+  host?: string;
+  port?: number;
+  username?: string;
+  password?: string;
+  database?: string;
+  synchronize?: boolean;
+  autoLoadEntities?: boolean;
+  extra?: Record<string, unknown>;
+}
+
+type DatabaseFactory = (configService: ConfigService) => DbConfigResult;
 
 describe('databaseConfig', () => {
   it('debe exportar un objeto TypeOrmModuleAsyncOptions válido', () => {

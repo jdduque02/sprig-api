@@ -186,7 +186,9 @@ describe('UserRepository', () => {
     });
 
     it('tolera entradas nulas en el resultado sin fallar', async () => {
-      mockTypeOrmRepo.createQueryBuilder.mockReturnValue(buildQb([[null], 1]));
+      mockTypeOrmRepo.createQueryBuilder.mockReturnValue(
+        buildQb([[null as unknown as AppUser], 1]),
+      );
 
       const result = await repo.findAll({ page: 1, limit: 10 });
       expect(result.data).toEqual([null]);
@@ -204,13 +206,13 @@ describe('UserRepository', () => {
       mockTypeOrmRepo.merge.mockReturnValue(updated);
       mockTypeOrmRepo.save.mockResolvedValue(updated);
 
-      const result = await repo.update(1, { username: 'newname' });
+      const result = await repo.update('1', { username: 'newname' });
       expect(result.username).toBe('newname');
     });
 
     it('debe lanzar NotFoundException si el usuario no existe', async () => {
       mockTypeOrmRepo.findOne.mockResolvedValue(null);
-      await expect(repo.update(99, {})).rejects.toThrow(NotFoundException);
+      await expect(repo.update('99', {})).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -403,7 +405,7 @@ describe('UserRepository', () => {
       mockTypeOrmRepo.merge.mockReturnValue(buildUser());
       mockTypeOrmRepo.save.mockRejectedValue(pgError);
 
-      await expect(repo.update(1, { email: 'dup@test.com' })).rejects.toThrow(
+      await expect(repo.update('1', { email: 'dup@test.com' })).rejects.toThrow(
         ConflictException,
       );
     });
@@ -413,7 +415,7 @@ describe('UserRepository', () => {
       mockTypeOrmRepo.merge.mockReturnValue(buildUser());
       mockTypeOrmRepo.save.mockRejectedValue(new Error('connection lost'));
 
-      await expect(repo.update(1, { username: 'x' })).rejects.toThrow(
+      await expect(repo.update('1', { username: 'x' })).rejects.toThrow(
         InternalServerErrorException,
       );
     });

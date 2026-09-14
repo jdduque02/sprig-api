@@ -39,7 +39,7 @@ describe('NotificationController', () => {
 
   it('findAll funciona sin query', async () => {
     mockService.findAll.mockResolvedValue([]);
-    await controller.findAll(10, undefined, currentUser as never);
+    await controller.findAll(10, undefined as never, currentUser as never);
     expect(mockService.findAll).toHaveBeenCalledWith(10, undefined);
   });
 

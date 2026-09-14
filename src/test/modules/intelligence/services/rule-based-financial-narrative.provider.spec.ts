@@ -21,7 +21,7 @@ const buildSummary = (overrides = {}) =>
     calculated_at: new Date(),
     is_final: false,
     ...overrides,
-  }) as FinancialSummary;
+  }) as unknown as FinancialSummary;
 
 describe('RuleBasedFinancialNarrativeProvider', () => {
   let provider: RuleBasedFinancialNarrativeProvider;

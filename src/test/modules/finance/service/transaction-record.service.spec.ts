@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { TransactionRecordService } from '@finance/service/transaction-record.service';
 import { TransactionRecordRepository } from '@finance/repositories/transaction-record.repository';
-import { TransactionSummaryQueryDto } from '@finance/dto/transaction-record/transaction-summary-query.dto';
 import { TransactionRecordQueryDto } from '@finance/dto/transaction-record/transaction-record-query.dto';
 import { CreateTransactionRecordDto } from '@finance/dto/transaction-record/create-transaction-record.dto';
 import { UpdateTransactionRecordDto } from '@finance/dto/transaction-record/update-transaction-record.dto';
@@ -25,6 +24,8 @@ const mockRepository = {
   softDeleteMany: jest.fn(),
   clone: jest.fn(),
   findUpcomingSubscriptions: jest.fn(),
+  findAllFixedActive: jest.fn(),
+  getVariableTotals: jest.fn(),
 };
 
 const buildTx = (overrides = {}) => ({
@@ -317,6 +318,81 @@ describe('TransactionRecordService', () => {
       const result = await service.getUpcomingPayments(10);
 
       expect(result).toEqual([]);
+    });
+  });
+
+  describe('getFixedTransactions', () => {
+    it('debe delegar en el repositorio con un límite superior de created_at', async () => {
+      const fixed = [buildSubscription({ id: 1 })];
+      mockRepository.findAllFixedActive.mockResolvedValue(fixed);
+
+      const result = await service.getFixedTransactions(10);
+
+      expect(mockRepository.findAllFixedActive).toHaveBeenCalledWith(
+        10,
+        expect.any(Date),
+      );
+      expect(result).toEqual(fixed);
+    });
+
+    it('debe devolver array vacío cuando el usuario no tiene transacciones fijas', async () => {
+      mockRepository.findAllFixedActive.mockResolvedValue([]);
+
+      const result = await service.getFixedTransactions(10);
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('getVariableAverageDaily', () => {
+    it('debe calcular el promedio diario dividiendo por los días reales del rango', async () => {
+      mockRepository.getVariableTotals.mockResolvedValue({
+        income: 3_000_000,
+        expense: 6_000_000,
+      });
+
+      const result = await service.getVariableAverageDaily(10, '2026-04-01', 3);
+
+      // 2026-01-01 -> 2026-04-01 son 90 días (ene 31 + feb 28 + mar 31).
+      expect(mockRepository.getVariableTotals).toHaveBeenCalledWith(
+        10,
+        '2026-01-01',
+        '2026-04-01',
+        expect.any(Date),
+      );
+      expect(result.dailyIncome).toBeCloseTo(3_000_000 / 90);
+      expect(result.dailyExpense).toBeCloseTo(6_000_000 / 90);
+    });
+
+    it('debe evitar el rollover de mes al restar meses desde un día que no existe en el mes destino', async () => {
+      mockRepository.getVariableTotals.mockResolvedValue({
+        income: 0,
+        expense: 0,
+      });
+
+      // 31 de marzo - 1 mes: sin clamp, `new Date(2026, 1, 31)` (índice de
+      // mes 1 = febrero) se desborda a marzo (febrero 2026 no tiene 31
+      // días, así que "31 de febrero" se normaliza a 2026-03-03). Con
+      // clamp debe resolver a 2026-02-28 (último día válido de febrero).
+      await service.getVariableAverageDaily(10, '2026-03-31', 1);
+
+      expect(mockRepository.getVariableTotals).toHaveBeenCalledWith(
+        10,
+        '2026-02-28',
+        '2026-03-31',
+        expect.any(Date),
+      );
+    });
+
+    it('debe devolver 0 cuando no hay movimientos variables en el rango', async () => {
+      mockRepository.getVariableTotals.mockResolvedValue({
+        income: 0,
+        expense: 0,
+      });
+
+      const result = await service.getVariableAverageDaily(10, '2026-06-15', 3);
+
+      expect(result).toEqual({ dailyIncome: 0, dailyExpense: 0 });
     });
   });
 });

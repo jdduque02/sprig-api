@@ -23,7 +23,12 @@ describe('StatementImportController', () => {
   it('create delega con archivos vacíos por defecto', async () => {
     const dto = { skip_duplicates: 'true' };
     mockService.createJob.mockResolvedValue({ id: 1 });
-    await controller.create(10, dto, undefined, currentUser as never);
+    await controller.create(
+      10,
+      dto,
+      undefined as unknown as Express.Multer.File[],
+      currentUser as never,
+    );
     expect(mockService.createJob).toHaveBeenCalledWith(10, [], dto);
   });
 

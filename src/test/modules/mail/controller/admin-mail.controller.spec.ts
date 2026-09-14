@@ -34,8 +34,7 @@ describe('AdminMailController', () => {
     it('delega a mailService.sendBroadcast', async () => {
       const dto = {
         subject: 'Test Subject',
-        body: 'Test Body',
-        recipients: ['test@example.com'],
+        html_body: 'Test Body',
       };
       const expected = { success: true, sent: 1 };
       mockMailService.sendBroadcast.mockResolvedValue(expected);

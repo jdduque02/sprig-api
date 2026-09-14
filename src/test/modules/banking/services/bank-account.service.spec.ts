@@ -24,7 +24,9 @@ const mockBankAccountRepository = {
 
 const mockEncryptionService = {
   encryptField: jest.fn((value: string) => `enc:${value}`),
-  decryptField: jest.fn((value: string) => value.replace(/^enc:/, '')),
+  decryptField: jest.fn((value: string): string | null =>
+    value.replace(/^enc:/, ''),
+  ),
   encrypt: jest.fn((value: string) => value),
   decrypt: jest.fn((value: string) => value),
 };

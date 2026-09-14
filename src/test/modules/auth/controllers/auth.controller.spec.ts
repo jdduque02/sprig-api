@@ -8,8 +8,10 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { I18nService } from 'nestjs-i18n';
+import type { Request, Response } from 'express';
 import { AuthController } from '@auth/controller/auth.controller';
 import { AuthService } from '@auth/service/auth.service';
+import { IntrospectResponse } from '@auth/interfaces/IntrospectResponse.dto';
 import { IpBlockGuard } from '@auth/guards/ip-block.guard';
 import { LoginDto } from '@auth/dto/login.dto';
 import { RefreshTokenDto } from '@auth/dto/refresh-token.dto';
@@ -66,6 +68,9 @@ const mockResponse: MockResponse = {
   cookie: jest.fn(),
 };
 
+const request = mockRequest as unknown as Request;
+const response = mockResponse as unknown as Response;
+
 const tokenResponse = {
   access_token: 'access-jwt',
   refresh_token: 'refresh-jwt',
@@ -104,7 +109,7 @@ describe('AuthController', () => {
 
     it('debe retornar KeycloakTokenResponse en login exitoso', async () => {
       mockAuthService.login.mockResolvedValue(tokenResponse);
-      const result = await controller.login(dto, mockRequest, mockResponse);
+      const result = await controller.login(dto, request, response);
       expect(mockAuthService.login).toHaveBeenCalledWith(dto, '127.0.0.1');
       expect(result).toEqual(tokenResponse);
       expect(mockResponse.cookie).toHaveBeenCalled();
@@ -114,18 +119,18 @@ describe('AuthController', () => {
       mockAuthService.login.mockRejectedValue(
         new UnauthorizedException('Credenciales inválidas.'),
       );
-      await expect(
-        controller.login(dto, mockRequest, mockResponse),
-      ).rejects.toThrow(UnauthorizedException);
+      await expect(controller.login(dto, request, response)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('debe propagar InternalServerErrorException en error de Keycloak', async () => {
       mockAuthService.login.mockRejectedValue(
         new InternalServerErrorException(),
       );
-      await expect(
-        controller.login(dto, mockRequest, mockResponse),
-      ).rejects.toThrow(InternalServerErrorException);
+      await expect(controller.login(dto, request, response)).rejects.toThrow(
+        InternalServerErrorException,
+      );
     });
 
     it('debe usar maxAge por defecto si el token no trae expiración', async () => {
@@ -133,7 +138,7 @@ describe('AuthController', () => {
         access_token: 'a',
         refresh_token: 'r',
       });
-      await controller.login(dto, mockRequest, mockResponse);
+      await controller.login(dto, request, response);
       expect(mockResponse.cookie).toHaveBeenCalledWith(
         'cm_access_token',
         'a',
@@ -152,7 +157,7 @@ describe('AuthController', () => {
         ...mockRequest,
         headers: { 'x-forwarded-for': '1.1.1.1, 2.2.2.2' },
       };
-      await controller.login(dto, req as never, mockResponse);
+      await controller.login(dto, req as never, response);
       expect(mockAuthService.login).toHaveBeenCalledWith(dto, '1.1.1.1');
     });
 
@@ -162,14 +167,14 @@ describe('AuthController', () => {
         ...mockRequest,
         headers: { 'x-forwarded-for': ['3.3.3.3', '4.4.4.4'] },
       };
-      await controller.login(dto, req as never, mockResponse);
+      await controller.login(dto, req as never, response);
       expect(mockAuthService.login).toHaveBeenCalledWith(dto, '3.3.3.3');
     });
 
     it('debe usar x-real-ip cuando es un string', async () => {
       mockAuthService.login.mockResolvedValue(tokenResponse);
       const req = { ...mockRequest, headers: { 'x-real-ip': '5.5.5.5' } };
-      await controller.login(dto, req as never, mockResponse);
+      await controller.login(dto, req as never, response);
       expect(mockAuthService.login).toHaveBeenCalledWith(dto, '5.5.5.5');
     });
 
@@ -179,14 +184,14 @@ describe('AuthController', () => {
         ...mockRequest,
         headers: { 'x-real-ip': ['6.6.6.6', '7.7.7.7'] },
       };
-      await controller.login(dto, req as never, mockResponse);
+      await controller.login(dto, req as never, response);
       expect(mockAuthService.login).toHaveBeenCalledWith(dto, '6.6.6.6');
     });
 
     it('debe usar socket.remoteAddress si no hay ip ni headers', async () => {
       mockAuthService.login.mockResolvedValue(tokenResponse);
       const req = { ...mockRequest, headers: {}, ip: undefined };
-      await controller.login(dto, req as never, mockResponse);
+      await controller.login(dto, req as never, response);
       expect(mockAuthService.login).toHaveBeenCalledWith(dto, '127.0.0.1');
     });
 
@@ -198,7 +203,7 @@ describe('AuthController', () => {
         ip: undefined,
         socket: { remoteAddress: undefined },
       };
-      await controller.login(dto, req as never, mockResponse);
+      await controller.login(dto, req as never, response);
       expect(mockAuthService.login).toHaveBeenCalledWith(dto, 'unknown');
     });
   });
@@ -211,7 +216,7 @@ describe('AuthController', () => {
 
     it('debe retornar nuevos tokens en refresh exitoso', async () => {
       mockAuthService.refresh.mockResolvedValue(tokenResponse);
-      const result = await controller.refresh(dto, mockRequest, mockResponse);
+      const result = await controller.refresh(dto, request, response);
       expect(mockAuthService.refresh).toHaveBeenCalledWith({
         refresh_token: 'valid-refresh',
       });
@@ -222,18 +227,18 @@ describe('AuthController', () => {
       mockAuthService.refresh.mockRejectedValue(
         new UnauthorizedException('Sesión expirada o token inválido.'),
       );
-      await expect(
-        controller.refresh(dto, mockRequest, mockResponse),
-      ).rejects.toThrow(UnauthorizedException);
+      await expect(controller.refresh(dto, request, response)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('debe propagar InternalServerErrorException en error de Keycloak', async () => {
       mockAuthService.refresh.mockRejectedValue(
         new InternalServerErrorException(),
       );
-      await expect(
-        controller.refresh(dto, mockRequest, mockResponse),
-      ).rejects.toThrow(InternalServerErrorException);
+      await expect(controller.refresh(dto, request, response)).rejects.toThrow(
+        InternalServerErrorException,
+      );
     });
 
     it('debe usar el refresh token de la cookie si el body no lo trae', async () => {
@@ -242,7 +247,7 @@ describe('AuthController', () => {
         ...mockRequest,
         cookies: { cm_refresh_token: 'cookie-refresh' },
       };
-      const result = await controller.refresh({}, req as never, mockResponse);
+      const result = await controller.refresh({}, req as never, response);
       expect(mockAuthService.refresh).toHaveBeenCalledWith({
         refresh_token: 'cookie-refresh',
       });
@@ -251,7 +256,7 @@ describe('AuthController', () => {
 
     it('debe llamar a refresh con string vacío si no hay ningún token', async () => {
       mockAuthService.refresh.mockResolvedValue(tokenResponse);
-      await controller.refresh({}, mockRequest, mockResponse);
+      await controller.refresh({}, request, response);
       expect(mockAuthService.refresh).toHaveBeenCalledWith({
         refresh_token: '',
       });
@@ -266,7 +271,7 @@ describe('AuthController', () => {
 
     it('debe cerrar sesión correctamente y retornar undefined', async () => {
       mockAuthService.logout.mockResolvedValue(undefined);
-      const result = await controller.logout(dto, mockRequest, mockResponse);
+      const result = await controller.logout(dto, request, response);
       expect(mockAuthService.logout).toHaveBeenCalledWith(dto.refresh_token);
       expect(result).toBeUndefined();
     });
@@ -275,9 +280,9 @@ describe('AuthController', () => {
       mockAuthService.logout.mockRejectedValue(
         new InternalServerErrorException(),
       );
-      await expect(
-        controller.logout(dto, mockRequest, mockResponse),
-      ).rejects.toThrow(InternalServerErrorException);
+      await expect(controller.logout(dto, request, response)).rejects.toThrow(
+        InternalServerErrorException,
+      );
     });
 
     it('debe revocar el refresh token de la cookie cuando el body no lo trae', async () => {
@@ -286,14 +291,14 @@ describe('AuthController', () => {
         ...mockRequest,
         cookies: { cm_refresh_token: 'cookie-refresh' },
       };
-      const result = await controller.logout({}, req as never, mockResponse);
+      const result = await controller.logout({}, req as never, response);
       expect(mockAuthService.logout).toHaveBeenCalledWith('cookie-refresh');
       expect(result).toBeUndefined();
     });
 
     it('debe limpiar las cookies sin llamar a logout si no hay token', async () => {
       mockResponse.cookie.mockClear();
-      const result = await controller.logout({}, mockRequest, mockResponse);
+      const result = await controller.logout({}, request, response);
       expect(mockAuthService.logout).not.toHaveBeenCalled();
       expect(mockResponse.cookie).toHaveBeenCalledTimes(2);
       expect(result).toBeUndefined();
@@ -430,7 +435,9 @@ describe('AuthController', () => {
       currentPassword: 'Vieja.123',
       newPassword: 'Nueva.456',
     };
-    const currentUser = { userId: 7 };
+    const currentUser: IntrospectResponse = {
+      userId: 7,
+    } as unknown as IntrospectResponse;
 
     it('debe cambiar la contraseña y devolver mensaje', async () => {
       mockAuthService.changePassword.mockResolvedValue(undefined);
@@ -453,7 +460,9 @@ describe('AuthController', () => {
   // ACTIVE SESSIONS
   // ─────────────────────────────────────────────────────────────
   describe('getActiveSessions', () => {
-    const currentUser = { userId: 7 };
+    const currentUser: IntrospectResponse = {
+      userId: 7,
+    } as unknown as IntrospectResponse;
     const sessions = [{ id: 's1' }];
 
     it('debe listar las sesiones activas del usuario', async () => {
@@ -477,7 +486,9 @@ describe('AuthController', () => {
   // REVOKE SESSION
   // ─────────────────────────────────────────────────────────────
   describe('revokeSession', () => {
-    const currentUser = { userId: 7 };
+    const currentUser: IntrospectResponse = {
+      userId: 7,
+    } as unknown as IntrospectResponse;
 
     it('debe revocar la sesión indicada', async () => {
       mockAuthService.revokeSession.mockResolvedValue(undefined);
@@ -500,7 +511,9 @@ describe('AuthController', () => {
   // ACCESS HISTORY
   // ─────────────────────────────────────────────────────────────
   describe('getAccessHistory', () => {
-    const currentUser = { userId: 7 };
+    const currentUser: IntrospectResponse = {
+      userId: 7,
+    } as unknown as IntrospectResponse;
     const events = [{ type: 'LOGIN' }];
 
     it('debe retornar el historial de accesos', async () => {

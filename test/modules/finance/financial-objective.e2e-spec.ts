@@ -108,6 +108,35 @@ describe('FinancialObjectiveController (e2e)', () => {
       ).toBe(500000);
     });
 
+    it('expone months_of_expenses_covered solo para objetivos emergency_fund', async () => {
+      const create = await request(server)
+        .post(base)
+        .set(...authHeader({ userId }))
+        .send({
+          name: 'Fondo de emergencia',
+          type: 'emergency_fund',
+          current_balance: 1000,
+        });
+      expect(create.status).toBe(201);
+      const emergencyFund = unwrapOne<{
+        id: number;
+        months_of_expenses_covered?: number | null;
+      }>(create.body);
+      expect(emergencyFund).toHaveProperty('months_of_expenses_covered');
+
+      const savingsGoal = await request(server)
+        .get(`${base}/${createdId}`)
+        .set(...authHeader({ userId }));
+      expect(savingsGoal.status).toBe(200);
+      expect(
+        unwrapOne<Record<string, unknown>>(savingsGoal.body),
+      ).not.toHaveProperty('months_of_expenses_covered');
+
+      await request(server)
+        .delete(`${base}/${emergencyFund.id}`)
+        .set(...authHeader({ userId }));
+    });
+
     it('elimina el objetivo (DELETE :id, soft delete) y deja de listarlo', async () => {
       const del = await request(server)
         .delete(`${base}/${createdId}`)

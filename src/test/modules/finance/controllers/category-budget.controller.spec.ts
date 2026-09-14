@@ -10,7 +10,7 @@ const mockCategoryBudgetService = {
   remove: jest.fn(),
 };
 
-const currentUser: IntrospectResponse = { sub: 'kc-uuid' };
+const currentUser: IntrospectResponse = { active: true, sub: 'kc-uuid' };
 
 const buildBudget = (overrides = {}) => ({
   id: 1,

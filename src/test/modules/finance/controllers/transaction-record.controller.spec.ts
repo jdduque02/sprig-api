@@ -30,7 +30,7 @@ const buildTransaction = (overrides = {}) => ({
   ...overrides,
 });
 
-const currentUser: IntrospectResponse = { sub: 'kc-uuid' };
+const currentUser: IntrospectResponse = { active: true, sub: 'kc-uuid' };
 
 describe('TransactionRecordController', () => {
   let controller: TransactionRecordController;

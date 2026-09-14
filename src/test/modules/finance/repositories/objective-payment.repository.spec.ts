@@ -139,7 +139,7 @@ describe('ObjectivePaymentRepository', () => {
       mockPaymentRepo.create.mockReturnValue(payment);
       mockPaymentRepo.save.mockResolvedValue(payment);
 
-      await repo.create(10, { ...dto, amount: null });
+      await repo.create(10, { ...dto, amount: null as never });
 
       expect(objective.current_balance).toBe(0);
     });

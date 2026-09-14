@@ -28,6 +28,7 @@ const buildPayload = (overrides = {}): NotificationPayload => ({
   is_read: false,
   is_active: true,
   scheduled_at: null,
+  reference: null,
   created_at: new Date(),
   ...overrides,
 });

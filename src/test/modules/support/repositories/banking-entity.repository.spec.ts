@@ -138,7 +138,9 @@ describe('BankingEntityRepository', () => {
     });
 
     it('omite entidades sin patrones (los mapea como lista vacía)', async () => {
-      mockRepo.find.mockResolvedValue([buildEntity({ detect_patterns: null })]);
+      mockRepo.find.mockResolvedValue([
+        buildEntity({ detect_patterns: null as never }),
+      ]);
 
       const result = await repo.findActiveDetections();
 

@@ -30,6 +30,7 @@ const buildAccount = (overrides = {}) => ({
 });
 
 const currentUser: IntrospectResponse = {
+  active: true,
   sub: 'kc-uuid',
   username: 'testuser',
 };

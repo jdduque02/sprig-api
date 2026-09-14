@@ -1,6 +1,7 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { FinancialSummaryCalculatorService } from '@intelligence/service/financial-summary-calculator.service';
+import { FinancialPeriod } from '@finance/entities/financial-period.entity';
 
 const mockI18n = { t: jest.fn((key: string) => key) };
 
@@ -21,14 +22,17 @@ const financialAssetService = { findAll: jest.fn() };
 const financialLiabilityService = { findAll: jest.fn() };
 const financialProfileService = { findByUserId: jest.fn() };
 
-const buildPeriod = (overrides = {}) => ({
-  id: 5,
-  user_id: 10,
-  year: 2026,
-  month: 4,
-  is_closed: false,
-  ...overrides,
-});
+const buildPeriod = (overrides = {}): FinancialPeriod =>
+  ({
+    id: 5,
+    user_id: 10,
+    year: 2026,
+    month: 4,
+    is_closed: false,
+    closed_at: null,
+    created_at: new Date(),
+    ...overrides,
+  }) as unknown as FinancialPeriod;
 
 const buildProfile = (overrides = {}) => ({
   id: '1',

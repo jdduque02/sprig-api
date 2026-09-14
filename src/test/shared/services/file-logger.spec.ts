@@ -1,10 +1,20 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { Logger } from '@nestjs/common';
 import { FileLogger } from '@shared/services/file-logger';
 
 jest.mock('node:fs');
 
 const mockedFs = jest.mocked(fs);
+
+type ParsedLogEntry = {
+  level?: string;
+  message?: string;
+  context?: string;
+  pid?: number;
+  timestamp?: unknown;
+  trace?: unknown;
+};
 
 describe('FileLogger', () => {
   let logger: FileLogger;
@@ -41,8 +51,12 @@ describe('FileLogger', () => {
 
       const logDir = path.join(process.cwd(), 'logs');
       const logFile = path.join(logDir, 'nest-logs.log');
-      expect((logger as any).logDir).toBe(logDir);
-      expect((logger as any).logFile).toBe(logFile);
+      const loggerInternals = logger as unknown as {
+        logDir: string;
+        logFile: string;
+      };
+      expect(loggerInternals.logDir).toBe(logDir);
+      expect(loggerInternals.logFile).toBe(logFile);
     });
   });
 
@@ -55,7 +69,7 @@ describe('FileLogger', () => {
       logger.log('hello', 'App');
 
       const call = mockedFs.appendFileSync.mock.calls[0];
-      const entry = JSON.parse(call[1] as string);
+      const entry = JSON.parse(call[1] as string) as ParsedLogEntry;
       expect(entry.level).toBe('LOG');
       expect(entry.message).toBe('hello');
       expect(entry.context).toBe('App');
@@ -73,7 +87,7 @@ describe('FileLogger', () => {
       logger.error('fail', 'stack-trace', 'Ctx');
 
       const call = mockedFs.appendFileSync.mock.calls[0];
-      const entry = JSON.parse(call[1] as string);
+      const entry = JSON.parse(call[1] as string) as ParsedLogEntry;
       expect(entry.level).toBe('ERROR');
       expect(entry.message).toBe('fail');
       expect(entry.context).toBe('Ctx');
@@ -88,7 +102,7 @@ describe('FileLogger', () => {
       logger.error('fail');
 
       const call = mockedFs.appendFileSync.mock.calls[0];
-      const entry = JSON.parse(call[1] as string);
+      const entry = JSON.parse(call[1] as string) as ParsedLogEntry;
       expect(entry.level).toBe('ERROR');
       expect(entry.trace).toBeUndefined();
     });
@@ -103,7 +117,7 @@ describe('FileLogger', () => {
       logger.warn('careful', 'Ctx');
 
       const call = mockedFs.appendFileSync.mock.calls[0];
-      const entry = JSON.parse(call[1] as string);
+      const entry = JSON.parse(call[1] as string) as ParsedLogEntry;
       expect(entry.level).toBe('WARN');
       expect(entry.message).toBe('careful');
       expect(entry.context).toBe('Ctx');
@@ -119,7 +133,7 @@ describe('FileLogger', () => {
       logger.debug('trace info', 'Dbg');
 
       const call = mockedFs.appendFileSync.mock.calls[0];
-      const entry = JSON.parse(call[1] as string);
+      const entry = JSON.parse(call[1] as string) as ParsedLogEntry;
       expect(entry.level).toBe('DEBUG');
       expect(entry.message).toBe('trace info');
       expect(entry.context).toBe('Dbg');
@@ -135,7 +149,7 @@ describe('FileLogger', () => {
       logger.verbose('detail', 'Verb');
 
       const call = mockedFs.appendFileSync.mock.calls[0];
-      const entry = JSON.parse(call[1] as string);
+      const entry = JSON.parse(call[1] as string) as ParsedLogEntry;
       expect(entry.level).toBe('VERBOSE');
       expect(entry.message).toBe('detail');
       expect(entry.context).toBe('Verb');
@@ -151,7 +165,7 @@ describe('FileLogger', () => {
       });
 
       const loggerErrorSpy = jest
-        .spyOn((logger as any).logger, 'error')
+        .spyOn((logger as unknown as { logger: Logger }).logger, 'error')
         .mockImplementation(() => {});
 
       expect(() => logger.log('test')).not.toThrow();

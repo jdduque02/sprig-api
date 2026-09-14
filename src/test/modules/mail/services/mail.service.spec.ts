@@ -322,7 +322,7 @@ describe('MailService', () => {
           service as unknown as { send: (p: SendPayload) => Promise<void> },
           'send',
         )
-        .mockImplementation((p: SendPayload) => {
+        .mockImplementation(async (p: SendPayload) => {
           if (p.to === 'fail@test.com') throw new Error('SMTP down');
         });
 

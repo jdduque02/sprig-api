@@ -65,8 +65,8 @@ describe('BankAccountRepository', () => {
       account_number: '123456789',
       balance: 1500000,
     };
-    const encNum = Buffer.from('123456789', 'utf8');
-    const encBal = Buffer.from('1500000', 'utf8');
+    const encNum = '123456789';
+    const encBal = '1500000';
 
     it('debe crear y guardar cuenta bancaria exitosamente', async () => {
       const account = buildAccount();

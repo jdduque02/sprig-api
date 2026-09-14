@@ -17,6 +17,7 @@ import { Logger } from '@nestjs/common';
 import {
   FixedTypeEnum,
   FrequencyEnum,
+  PaymentMethodEnum,
   TransactionTypeEnum,
 } from '@shared/enums';
 
@@ -379,7 +380,7 @@ describe('FixedReminderScheduler', () => {
       const tx = buildTx({
         fixed_type: FixedTypeEnum.DEDUCTION,
         type: TransactionTypeEnum.EXPENSE,
-        payment_method: 'bank_transfer',
+        payment_method: PaymentMethodEnum.BANK_TRANSFER,
         source_bank: 'Bancolombia',
         source_account: '1234',
       });
@@ -405,7 +406,7 @@ describe('FixedReminderScheduler', () => {
 
     it('debe incluir el método de pago aunque no haya entidad', async () => {
       const tx = buildTx({
-        payment_method: 'cash',
+        payment_method: PaymentMethodEnum.CASH,
         source_bank: undefined,
         source_account: undefined,
       });

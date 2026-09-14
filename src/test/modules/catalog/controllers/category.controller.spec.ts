@@ -4,7 +4,6 @@ import { CategoryService } from '@catalog/service/category.service';
 import { CreateCategoryDto } from '@catalog/dto/category/create-category.dto';
 import { UpdateCategoryDto } from '@catalog/dto/category/update-category.dto';
 import { TransactionTypeEnum } from '@shared/enums';
-import { IntrospectResponse } from '@auth/interfaces/IntrospectResponse.dto';
 
 const mockCategoryService = {
   create: jest.fn(),
@@ -23,11 +22,6 @@ const buildCategory = (overrides = {}) => ({
   is_active: true,
   ...overrides,
 });
-
-const currentUser: IntrospectResponse = {
-  sub: 'kc-uuid',
-  username: 'testuser',
-};
 
 describe('CategoryController', () => {
   let controller: CategoryController;
@@ -52,7 +46,7 @@ describe('CategoryController', () => {
       const created = buildCategory();
       mockCategoryService.create.mockResolvedValue(created);
 
-      const result = await controller.create(dto, currentUser);
+      const result = await controller.create(dto);
 
       expect(mockCategoryService.create).toHaveBeenCalledWith(dto);
       expect(result).toEqual(created);
@@ -61,9 +55,7 @@ describe('CategoryController', () => {
     it('debe propagar ConflictException si ya existe la categoría', async () => {
       mockCategoryService.create.mockRejectedValue(new ConflictException());
 
-      await expect(controller.create(dto, currentUser)).rejects.toThrow(
-        ConflictException,
-      );
+      await expect(controller.create(dto)).rejects.toThrow(ConflictException);
     });
   });
 
@@ -78,7 +70,7 @@ describe('CategoryController', () => {
       ];
       mockCategoryService.findAll.mockResolvedValue(categories);
 
-      const result = await controller.findAll(currentUser);
+      const result = await controller.findAll();
 
       expect(mockCategoryService.findAll).toHaveBeenCalledTimes(1);
       expect(result).toHaveLength(2);
@@ -93,7 +85,7 @@ describe('CategoryController', () => {
       const category = buildCategory();
       mockCategoryService.findOne.mockResolvedValue(category);
 
-      const result = await controller.findOne(1, currentUser);
+      const result = await controller.findOne(1);
 
       expect(mockCategoryService.findOne).toHaveBeenCalledWith(1);
       expect(result).toEqual(category);
@@ -102,9 +94,7 @@ describe('CategoryController', () => {
     it('debe propagar NotFoundException si la categoría no existe', async () => {
       mockCategoryService.findOne.mockRejectedValue(new NotFoundException());
 
-      await expect(controller.findOne(999, currentUser)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(controller.findOne(999)).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -117,7 +107,7 @@ describe('CategoryController', () => {
       const updated = buildCategory({ name: 'Comida' });
       mockCategoryService.update.mockResolvedValue(updated);
 
-      const result = await controller.update(1, dto, currentUser);
+      const result = await controller.update(1, dto);
 
       expect(mockCategoryService.update).toHaveBeenCalledWith(1, dto);
       expect(result).toEqual(updated);

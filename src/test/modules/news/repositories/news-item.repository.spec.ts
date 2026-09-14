@@ -15,7 +15,7 @@ const mockQb = {
 
 const mockTypeOrmRepo = {
   create: jest.fn((e: Partial<NewsItem>) => e),
-  save: jest.fn((e: NewsItem) => ({ id: 1, ...e })),
+  save: jest.fn((e: NewsItem) => ({ ...e, id: 1 })),
   findOne: jest.fn(),
   softRemove: jest.fn(),
   createQueryBuilder: jest.fn(() => mockQb),

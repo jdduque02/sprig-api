@@ -25,7 +25,7 @@ const buildObjective = (overrides = {}) => ({
   ...overrides,
 });
 
-const currentUser: IntrospectResponse = { sub: 'kc-uuid' };
+const currentUser: IntrospectResponse = { active: true, sub: 'kc-uuid' };
 
 describe('FinancialObjectiveController', () => {
   let controller: FinancialObjectiveController;

@@ -17,6 +17,7 @@ import { IntelligenceService } from '@intelligence/service/intelligence.service'
 import { FinancialAiAnalysisService } from '@intelligence/service/financial-ai-analysis.service';
 import { FinancialProfileReportService } from '@intelligence/service/financial-profile-report.service';
 import { TaxSummaryCalculatorService } from '@intelligence/service/tax-summary-calculator.service';
+import { CashFlowForecastService } from '@intelligence/service/cash-flow-forecast.service';
 
 const mockService = {
   findFinancialSummary: jest.fn(),
@@ -37,6 +38,10 @@ const mockTaxCalculatorService = {
   update: jest.fn(),
 };
 
+const mockCashFlowForecastService = {
+  forecast: jest.fn(),
+};
+
 const mockRes = {
   setHeader: jest.fn(),
   send: jest.fn(),
@@ -53,6 +58,7 @@ describe('IntelligenceController', () => {
       mockAiAnalysisService as unknown as FinancialAiAnalysisService,
       mockReportService as unknown as FinancialProfileReportService,
       mockTaxCalculatorService as unknown as TaxSummaryCalculatorService,
+      mockCashFlowForecastService as unknown as CashFlowForecastService,
     );
     jest.clearAllMocks();
   });
