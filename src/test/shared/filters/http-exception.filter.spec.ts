@@ -178,10 +178,12 @@ describe('HttpExceptionFilter', () => {
   });
 
   it('debe usar this.i18n inyectado por constructor cuando I18nContext.current no resuelve nada', () => {
-    const i18n = {
+    const i18nServiceMock = {
       t: jest.fn().mockReturnValue('mensaje traducido'),
-    } as unknown as I18nService;
-    const filterWithI18n = new HttpExceptionFilter(i18n);
+    };
+    const filterWithI18n = new HttpExceptionFilter(
+      i18nServiceMock as unknown as I18nService,
+    );
     const exception = new HttpException(
       'Mensaje plano',
       HttpStatus.BAD_REQUEST,
@@ -189,7 +191,7 @@ describe('HttpExceptionFilter', () => {
 
     filterWithI18n.catch(exception, host);
 
-    expect(i18n.t).toHaveBeenCalledWith('shared.UNEXPECTED_ERROR', {
+    expect(i18nServiceMock.t).toHaveBeenCalledWith('shared.UNEXPECTED_ERROR', {
       args: undefined,
     });
   });

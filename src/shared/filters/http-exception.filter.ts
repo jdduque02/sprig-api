@@ -106,7 +106,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
         // Errores de validación (class-validator)
         details = resp.message;
         const fields = details
-          .map((d: any) => d.property)
+          .map((d) => (d as { property?: string }).property)
           .filter(Boolean)
           .join(', ');
         message = fields

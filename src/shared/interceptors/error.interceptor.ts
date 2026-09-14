@@ -87,7 +87,9 @@ export class ErrorsInterceptor implements NestInterceptor {
             property: e.property,
             constraints: e.constraints,
           }));
-          const fields = details.map((d) => d.property).join(', ');
+          const fields = details
+            .map((d: { property?: string }) => d.property)
+            .join(', ');
           message =
             this.translate('shared.INVALID_INPUT', { fields }, context) ??
             `Campos con errores de validación: ${fields}`;

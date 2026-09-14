@@ -15,7 +15,12 @@ jest.mock('uuid', () => ({
 }));
 
 describe('ErrorsInterceptor', () => {
-  let loggingService: jest.Mocked<LoggingService>;
+  let loggingService: {
+    sendLog: jest.Mock<
+      Promise<void>,
+      [data: unknown, severity: string, context: string]
+    >;
+  };
   let i18nService: jest.Mocked<I18nService>;
   let interceptor: ErrorsInterceptor;
 
@@ -33,14 +38,19 @@ describe('ErrorsInterceptor', () => {
 
   beforeEach(() => {
     loggingService = {
-      sendLog: jest.fn().mockResolvedValue(undefined),
-    } as unknown as jest.Mocked<LoggingService>;
+      sendLog: jest.fn((_data: unknown, _severity: string, _context: string) =>
+        Promise.resolve(undefined),
+      ),
+    };
 
     i18nService = {
       t: jest.fn((key: string) => `[${key}]`),
     } as unknown as jest.Mocked<I18nService>;
 
-    interceptor = new ErrorsInterceptor(loggingService, i18nService);
+    interceptor = new ErrorsInterceptor(
+      loggingService as unknown as LoggingService,
+      i18nService,
+    );
   });
 
   afterEach(() => {
@@ -52,7 +62,9 @@ describe('ErrorsInterceptor', () => {
     const payload = { id: 1, name: 'test' };
     const next = buildNext(of(payload));
 
-    const result = await firstValueFrom(interceptor.intercept(context, next));
+    const result: unknown = await firstValueFrom(
+      interceptor.intercept(context, next),
+    );
 
     expect(result).toEqual(payload);
     expect(loggingService.sendLog).not.toHaveBeenCalled();
@@ -68,8 +80,8 @@ describe('ErrorsInterceptor', () => {
       fail('Expected exception to be thrown');
     } catch (err) {
       expect(err).toBeInstanceOf(HttpException);
-      expect(err.getStatus()).toBe(HttpStatus.FORBIDDEN);
-      expect(err.getResponse()).toMatchObject({
+      expect((err as HttpException).getStatus()).toBe(HttpStatus.FORBIDDEN);
+      expect((err as HttpException).getResponse()).toMatchObject({
         status: HttpStatus.FORBIDDEN,
         path: '/users',
       });
@@ -86,8 +98,13 @@ describe('ErrorsInterceptor', () => {
       fail('Expected exception to be thrown');
     } catch (err) {
       expect(err).toBeInstanceOf(InternalServerErrorException);
-      expect(err.getStatus()).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
-      const body = err.getResponse() as Record<string, unknown>;
+      expect((err as HttpException).getStatus()).toBe(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+      const body = (err as HttpException).getResponse() as Record<
+        string,
+        unknown
+      >;
       expect(body.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
       expect(body.trace_id).toBe('trace-id-123');
       expect(body.path).toBe('/db/query');
@@ -106,7 +123,7 @@ describe('ErrorsInterceptor', () => {
         constraints: { minLength: 'Too short' },
       },
     ];
-    const error = new I18nValidationException(i18nErrors);
+    const error = new I18nValidationException(i18nErrors as never);
     const next = buildNext(throwError(() => error));
 
     try {
@@ -114,7 +131,10 @@ describe('ErrorsInterceptor', () => {
       fail('Expected exception to be thrown');
     } catch (err) {
       expect(err).toBeInstanceOf(HttpException);
-      const body = err.getResponse() as Record<string, unknown>;
+      const body = (err as HttpException).getResponse() as Record<
+        string,
+        unknown
+      >;
       expect(body.status).toBe(HttpStatus.BAD_REQUEST);
       expect(body.details).toEqual([
         { property: 'email', constraints: { isEmail: 'Invalid email format' } },
@@ -133,8 +153,11 @@ describe('ErrorsInterceptor', () => {
       fail('Expected exception to be thrown');
     } catch (err) {
       expect(err).toBeInstanceOf(HttpException);
-      expect(err.getStatus()).toBe(HttpStatus.NOT_FOUND);
-      const body = err.getResponse() as Record<string, unknown>;
+      expect((err as HttpException).getStatus()).toBe(HttpStatus.NOT_FOUND);
+      const body = (err as HttpException).getResponse() as Record<
+        string,
+        unknown
+      >;
       expect(body.message).toBe('Not found');
       expect(body.path).toBe('/raw');
     }
@@ -153,8 +176,11 @@ describe('ErrorsInterceptor', () => {
       fail('Expected exception to be thrown');
     } catch (err) {
       expect(err).toBeInstanceOf(HttpException);
-      expect(err.getStatus()).toBe(HttpStatus.BAD_REQUEST);
-      const body = err.getResponse() as Record<string, unknown>;
+      expect((err as HttpException).getStatus()).toBe(HttpStatus.BAD_REQUEST);
+      const body = (err as HttpException).getResponse() as Record<
+        string,
+        unknown
+      >;
       expect(body.message).toBe('Validation failed');
       expect(body.details).toEqual([{ field: 'name' }]);
     }

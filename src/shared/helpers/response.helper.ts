@@ -30,12 +30,6 @@ interface ErrorApiResponse<TBody = unknown> extends BaseApiResponse {
 }
 
 /**
- * Tipo union para todas las posibles respuestas
- */
-type ApiResponse<TData = unknown, TErrorBody = unknown> =
-  SuccessApiResponse<TData> | ErrorApiResponse<TErrorBody>;
-
-/**
  * Tipo para objetos de error que pueden tener diferentes estructuras
  */
 type ErrorLike =
