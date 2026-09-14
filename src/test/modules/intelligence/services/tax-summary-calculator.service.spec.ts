@@ -189,6 +189,61 @@ describe('TaxSummaryCalculatorService', () => {
       expect(result.uvt_value).toBe(customUVT);
     });
 
+    it('debe usar la UVT 2026 corregida ($52.374, Resolución DIAN 000238/2025) por defecto', async () => {
+      const userId = 10;
+      const fiscalYear = 2026;
+
+      mockTransactionRecordService.getSummary.mockResolvedValue({
+        totals: { income: 10000000, count_income: 1 },
+        by_month: {},
+      });
+      mockBankAccountService.findAll.mockResolvedValue([]);
+      mockFinancialAssetService.findAll.mockResolvedValue([]);
+      mockFinancialLiabilityService.findAll.mockResolvedValue([]);
+      mockTaxSummaryRepo.findOne.mockResolvedValue(null);
+      mockTaxSummaryRepo.create.mockImplementation(
+        (data: Partial<TaxSummary>) => data as TaxSummary,
+      );
+      mockTaxSummaryRepo.save.mockImplementation((data: TaxSummary) =>
+        Promise.resolve(data),
+      );
+
+      const result = await service.calculateAndPersist(userId, fiscalYear);
+
+      expect(result.uvt_value).toBe(52_374);
+    });
+
+    it('debe exigir declarar por patrimonio a partir de 4.500 UVT (no 4.750)', async () => {
+      const userId = 10;
+      const fiscalYear = 2026;
+      const uvt = 52_374;
+      // Patrimonio bruto justo por encima de 4.500 UVT (umbral corregido).
+      // Con el umbral anterior (4.750 UVT) este caso NO habría exigido
+      // declarar, evidenciando el bug corregido.
+      const assetsAboveNewThreshold = 4_500 * uvt + 1_000_000;
+
+      mockTransactionRecordService.getSummary.mockResolvedValue({
+        totals: { income: 0, count_income: 0 },
+        by_month: {},
+      });
+      mockBankAccountService.findAll.mockResolvedValue([
+        { id: 1, display_balance: assetsAboveNewThreshold },
+      ]);
+      mockFinancialAssetService.findAll.mockResolvedValue([]);
+      mockFinancialLiabilityService.findAll.mockResolvedValue([]);
+      mockTaxSummaryRepo.findOne.mockResolvedValue(null);
+      mockTaxSummaryRepo.create.mockImplementation(
+        (data: Partial<TaxSummary>) => data as TaxSummary,
+      );
+      mockTaxSummaryRepo.save.mockImplementation((data: TaxSummary) =>
+        Promise.resolve(data),
+      );
+
+      const result = await service.calculateAndPersist(userId, fiscalYear);
+
+      expect(result.must_declare).toBe(true);
+    });
+
     it('should determine must_declare based on UVT thresholds', async () => {
       const userId = 10;
       const fiscalYear = 2026;

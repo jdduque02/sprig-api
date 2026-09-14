@@ -24,9 +24,45 @@ interface TaxSummaryValidation {
   notes: Record<string, unknown>;
 }
 
-const CURRENT_UVT_2026 = 42680; // UVT 2026 (Colombia) - ajustar anualmente
-const UVT_DECLARATION_THRESHOLD = 1400; // En UVT: si ingreso > 1400 UVT, debe declarar
-const PATRIMONY_DECLARATION_THRESHOLD = 4750; // En UVT: si patrimonio > 4750 UVT, debe declarar
+/**
+ * Valores UVT y umbrales de declaración de renta por año fiscal (Colombia).
+ * Fuente año gravable 2026: Resolución DIAN 000238 del 15 de diciembre de
+ * 2025 (fija la UVT 2026 en $52.374 COP). Umbrales en UVT según el mismo
+ * año gravable:
+ *   - Ingresos/consignaciones: 1.400 UVT (≈ $73.323.600).
+ *   - Patrimonio bruto: 4.500 UVT (≈ $235.683.000) — NO 4.750 UVT, valor
+ *     corregido respecto de una versión anterior de este archivo.
+ * El artículo exacto del Estatuto Tributario (592/594-1) que fija el
+ * umbral de patrimonio NO se pudo confirmar con certeza al momento de este
+ * cambio; se cita únicamente la Resolución DIAN y el año gravable. Queda
+ * pendiente de verificación humana antes de asumir el número de artículo
+ * en cualquier comunicación oficial.
+ *
+ * Para agregar el año fiscal siguiente: añadir una nueva entrada a este
+ * mapa (nunca sobrescribir la existente) y actualizar `CURRENT_FISCAL_YEAR`.
+ */
+interface FiscalYearTaxParams {
+  uvtValue: number;
+  incomeDeclarationThresholdUvt: number;
+  patrimonyDeclarationThresholdUvt: number;
+}
+
+const FISCAL_YEAR_TAX_PARAMS: Record<number, FiscalYearTaxParams> = {
+  2026: {
+    uvtValue: 52_374,
+    incomeDeclarationThresholdUvt: 1_400,
+    patrimonyDeclarationThresholdUvt: 4_500,
+  },
+};
+
+const CURRENT_FISCAL_YEAR = 2026;
+
+function getFiscalYearTaxParams(fiscalYear: number): FiscalYearTaxParams {
+  return (
+    FISCAL_YEAR_TAX_PARAMS[fiscalYear] ??
+    FISCAL_YEAR_TAX_PARAMS[CURRENT_FISCAL_YEAR]
+  );
+}
 
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
@@ -56,7 +92,8 @@ export class TaxSummaryCalculatorService {
     uvtValue?: number,
   ): Promise<TaxSummary> {
     const year = fiscalYear ?? new Date().getFullYear();
-    const uvt = uvtValue ?? CURRENT_UVT_2026;
+    const fiscalParams = getFiscalYearTaxParams(year);
+    const uvt = uvtValue ?? fiscalParams.uvtValue;
 
     // Verificar si ya existe
     const existing = await this.taxSummaryRepo.findOne({
@@ -87,16 +124,15 @@ export class TaxSummaryCalculatorService {
     const totalIncome = incomeData.total;
     const totalAssets = assetsData.total;
     const totalLiabilities = liabilitiesData.total;
-    const patrimony = totalAssets - totalLiabilities;
 
     // Cálculos en UVT
     const incomeInUvt = round2(totalIncome / uvt);
     const assetsInUvt = round2(totalAssets / uvt);
 
-    // Determinar obligación de declarar según normas DIAN
+    // Determinar obligación de declarar según normas DIAN del año fiscal
     const mustDeclare =
-      incomeInUvt >= UVT_DECLARATION_THRESHOLD ||
-      assetsInUvt >= PATRIMONY_DECLARATION_THRESHOLD;
+      incomeInUvt >= fiscalParams.incomeDeclarationThresholdUvt ||
+      assetsInUvt >= fiscalParams.patrimonyDeclarationThresholdUvt;
 
     const summary = this.taxSummaryRepo.create({
       user_id: userId,
@@ -152,12 +188,13 @@ export class TaxSummaryCalculatorService {
 
     const incomeInUvt = uvt ? round2(totalIncome / uvt) : 0;
     const assetsInUvt = uvt ? round2(totalAssets / uvt) : 0;
+    const fiscalParams = getFiscalYearTaxParams(existing.fiscal_year);
 
     const mustDeclare =
       dto.must_declare !== undefined
         ? dto.must_declare
-        : incomeInUvt >= UVT_DECLARATION_THRESHOLD ||
-          assetsInUvt >= PATRIMONY_DECLARATION_THRESHOLD;
+        : incomeInUvt >= fiscalParams.incomeDeclarationThresholdUvt ||
+          assetsInUvt >= fiscalParams.patrimonyDeclarationThresholdUvt;
 
     Object.assign(existing, dto, { must_declare: mustDeclare });
 
