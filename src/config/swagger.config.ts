@@ -1,5 +1,6 @@
 import { DocumentBuilder, OpenAPIObject } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
+import { BRAND_META } from '@config/brand';
 
 type Environment = 'DEV' | 'PROD' | 'LOCAL';
 
@@ -13,13 +14,13 @@ export const getSwaggerConfig = (
   configService: ConfigService,
 ): Omit<OpenAPIObject, 'paths'> => {
   const environment = configService.get<Environment>('NODE_ENV') || 'LOCAL';
-  const version = configService.get<string>('VERSION') || '1';
+  const version = configService.get<string>('VERSION') || BRAND_META.version;
   const serverUrl = SERVER_URLS[environment];
 
   const builder = new DocumentBuilder()
-    .setTitle(`Sprig API`)
+    .setTitle(BRAND_META.apiTitle)
     .setDescription(
-      `Documentación interactiva de la API de **Sprig**.\n\n` +
+      `${BRAND_META.docsDescription}\n\n` +
         `Ambiente actual: **${environment}**\n\n` +
         `> Autenticación: obtén un token JWT en \`POST /auth/login\` y pégalo en el campo Authorize.`,
     )

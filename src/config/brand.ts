@@ -19,3 +19,25 @@ export const BRAND_PALETTE = {
   /** Footer / secondary text */
   footerMuted: '#555A5E',
 } as const;
+
+/**
+ * Brand metadata — single source of truth for Sprig product surfaces
+ * (Swagger UI, logo, mail templates, mail from header).
+ */
+export const BRAND_META = {
+  /** Nombre corto del producto (copyright, alt de logo, copy). */
+  appName: 'Sprig',
+  /** Título de la API en al menos una superficie (Swagger). */
+  apiTitle: 'Sprig API',
+  /** Título del tab del navegador en Swagger UI. */
+  docsSiteTitle: 'Sprig API Docs',
+  /** Tagline del header de Swagger UI. */
+  docsTagline:
+    'Documentación interactiva — explora y prueba los endpoints en vivo',
+  /** Introducción del documento OpenAPI (description de Swagger). */
+  docsDescription: 'Documentación interactiva de la API de **Sprig**.',
+  /** Versión por defecto si no hay env VERSION. */
+  version: '1',
+  /** Mailbox del remitente de correos transaccionales. */
+  fromEmail: 'no-reply@sprig.local',
+} as const;

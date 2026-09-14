@@ -1,4 +1,4 @@
-import { BRAND_PALETTE } from '@config/brand';
+import { BRAND_META, BRAND_PALETTE } from '@config/brand';
 
 export const getSwaggerCustomCss = (): string => `
   .swagger-header {
@@ -38,10 +38,10 @@ export const getSwaggerCustomJs = (logoBase64: string): string => `
   var header = document.createElement('div');
   header.className = 'swagger-header';
   header.innerHTML =
-    '<img src="data:image/svg+xml;base64,${logoBase64}" alt="Sprig" />' +
+    '<img src="data:image/svg+xml;base64,${logoBase64}" alt="${BRAND_META.appName}" />' +
     '<div>' +
-      '<h1>Sprig API</h1>' +
-      '<p>Documentación interactiva &mdash; explora y prueba los endpoints en vivo</p>' +
+      '<h1>${BRAND_META.apiTitle}</h1>' +
+      '<p>${BRAND_META.docsTagline}</p>' +
     '</div>';
   var ui = document.getElementById('swagger-ui');
   if (ui) ui.parentNode.insertBefore(header, ui);

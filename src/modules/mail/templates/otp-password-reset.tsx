@@ -10,7 +10,7 @@ import {
   Section,
   Text,
 } from '@react-email/components';
-import { BRAND_PALETTE } from '@config/brand';
+import { BRAND_META, BRAND_PALETTE } from '@config/brand';
 
 export interface OtpPasswordResetEmailProps {
   /** Nombre o usuario a quien se envía el correo. */
@@ -119,8 +119,8 @@ export default function OtpPasswordResetEmail({
               lineHeight: '18px',
             }}
           >
-            © {year} Sprig. Este es un correo automático, por favor no
-            respondas.
+            © {year} {BRAND_META.appName}. Este es un correo automático, por
+            favor no respondas.
           </Text>
         </Container>
       </Body>

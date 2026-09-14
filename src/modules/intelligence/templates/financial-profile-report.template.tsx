@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer';
-import { BRAND_PALETTE } from '@config/brand';
+import { BRAND_META, BRAND_PALETTE } from '@config/brand';
 import { UserResponseDto } from '@identity/dto/user/user-response.dto';
 import { FinancialProfile } from '@identity/entities/financial-profile.entity';
 import { FinancialAiAnalysisResponseDto } from '@intelligence/dto/financial-ai-analysis-response.dto';
@@ -436,7 +436,7 @@ export function FinancialProfileReportDocument({
         <Text style={styles.footer}>
           Este reporte es informativo y no constituye asesoría financiera. Todos
           los montos están en pesos colombianos (COP). Generado automáticamente
-          por Sprig.
+          por {BRAND_META.appName}.
         </Text>
       </Page>
     </Document>

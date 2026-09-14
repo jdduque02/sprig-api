@@ -6,6 +6,7 @@ import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
 import { render } from '@react-email/render';
 import { UserRepository } from '@identity/repositories/app-user.repositories';
+import { BRAND_META } from '@config/brand';
 import { EmailTemplate } from '../entities/email-template.entity';
 import OtpPasswordResetEmail from '../templates/otp-password-reset';
 import {
@@ -115,7 +116,7 @@ export class MailService implements OnApplicationBootstrap {
   private get from(): string {
     return (
       this.configService.get<string>('MAIL_FROM') ??
-      'Sprig <no-reply@sprig.local>'
+      `${BRAND_META.appName} <${BRAND_META.fromEmail}>`
     );
   }
 
