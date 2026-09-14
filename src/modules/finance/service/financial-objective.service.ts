@@ -14,8 +14,36 @@ import { CalculateQuotaResponseDto } from '@finance/dto/financial-objective/calc
 import { FinancialProfileRepository } from '@identity/repositories/financial-profile.repository';
 import { UserRepository } from '@identity/repositories/app-user.repositories';
 import { AuditLogService } from '@audit/service/audit-log.service';
-import { FrequencyEnum, AuditActionEnum } from '@shared/enums';
+import { TransactionRecordService } from '@finance/service/transaction-record.service';
+import type { TransactionSummaryResponseDto } from '@finance/dto/transaction-record/transaction-summary-response.dto';
+import type { FinancialObjectiveWithProgress } from '@finance/repositories/financial-objective.repository';
+import {
+  FrequencyEnum,
+  AuditActionEnum,
+  FinancialObjectiveTypeEnum,
+  TransactionTypeEnum,
+} from '@shared/enums';
 import { todayInTimeZone } from '@shared/helpers/financial-objective.helper';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+// Ventana de meses completos usados para promediar el gasto mensual del
+// fondo de emergencia. Mismo criterio (3 meses) que
+// `HISTORICAL_AVERAGE_MONTHS` en el forecast de flujo de caja
+// (`intelligence/service/cash-flow-forecast.service.ts`), documentado por
+// separado aquí porque son módulos distintos y no comparten esa constante.
+const EMERGENCY_FUND_EXPENSE_AVERAGE_MONTHS = 3;
+
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+function formatIsoDate(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+export type FinancialObjectiveWithCoverage = FinancialObjectiveWithProgress & {
+  months_of_expenses_covered?: number | null;
+};
 
 const DAYS_PER_FREQUENCY: Record<FrequencyEnum, number> = {
   [FrequencyEnum.DAILY]: 1,
@@ -63,23 +91,106 @@ export class FinancialObjectiveService {
     private readonly financialProfileRepository: FinancialProfileRepository,
     private readonly userRepository: UserRepository,
     private readonly auditLogService: AuditLogService,
+    private readonly transactionRecordService: TransactionRecordService,
     @Inject(I18nService) private readonly i18n: I18nService,
   ) {}
 
   async create(userId: number, dto: CreateFinancialObjectiveDto) {
-    return this.financialObjectiveRepository.create(userId, dto);
+    const created = await this.financialObjectiveRepository.create(userId, dto);
+    return this.attachEmergencyFundCoverage(userId, created);
   }
 
   async findAll(userId: number) {
-    return this.financialObjectiveRepository.findAll(userId);
+    const objectives = await this.financialObjectiveRepository.findAll(userId);
+    return Promise.all(
+      objectives.map((o) => this.attachEmergencyFundCoverage(userId, o)),
+    );
   }
 
   async findOne(id: number, userId: number) {
-    return this.financialObjectiveRepository.findById(id, userId);
+    const objective = await this.financialObjectiveRepository.findById(
+      id,
+      userId,
+    );
+    return this.attachEmergencyFundCoverage(userId, objective);
   }
 
   async update(id: number, userId: number, dto: UpdateFinancialObjectiveDto) {
-    return this.financialObjectiveRepository.update(id, userId, dto);
+    const updated = await this.financialObjectiveRepository.update(
+      id,
+      userId,
+      dto,
+    );
+    return this.attachEmergencyFundCoverage(userId, updated);
+  }
+
+  /**
+   * Adjunta `months_of_expenses_covered` solo a objetivos de tipo
+   * `emergency_fund`. Indicador = current_balance / gasto mensual promedio
+   * del usuario (últimos `EMERGENCY_FUND_EXPENSE_AVERAGE_MONTHS` meses
+   * calendario completos, sin incluir el mes en curso). Reutiliza
+   * `TransactionRecordService.getSummary` (ya agrega ingresos/gastos por
+   * rango de `transaction_date`) en vez de duplicar lógica de promedios —
+   * a diferencia de `getVariableAverageDaily` (usado por el forecast de
+   * `intelligence`), `getSummary` incluye TODOS los gastos (fijos y
+   * variables), que es lo correcto para dimensionar un fondo de emergencia.
+   */
+  private async attachEmergencyFundCoverage(
+    userId: number,
+    objective: FinancialObjectiveWithProgress,
+  ): Promise<FinancialObjectiveWithCoverage> {
+    if (objective.type !== FinancialObjectiveTypeEnum.EMERGENCY_FUND) {
+      return objective;
+    }
+    const months_of_expenses_covered =
+      await this.computeMonthsOfExpensesCovered(
+        userId,
+        Number(objective.current_balance ?? 0),
+      );
+    return { ...objective, months_of_expenses_covered };
+  }
+
+  private async computeMonthsOfExpensesCovered(
+    userId: number,
+    currentBalance: number,
+  ): Promise<number | null> {
+    let timezone = 'America/Bogota';
+    try {
+      const user = await this.userRepository.findById(String(userId));
+      timezone = user.timezone || 'America/Bogota';
+    } catch {
+      this.logger.debug(
+        `Usuario ${userId} no encontrado; se usa zona horaria por defecto ` +
+          'para el cálculo de cobertura del fondo de emergencia.',
+      );
+    }
+
+    const today = todayInTimeZone(timezone);
+    const [year, month] = today.split('-').map(Number);
+    // Últimos N meses calendario COMPLETOS (excluye el mes en curso, que
+    // está parcial y sesgaría el promedio hacia abajo).
+    const currentMonthStart = new Date(year, month - 1, 1);
+    const dateFrom = new Date(
+      year,
+      month - 1 - EMERGENCY_FUND_EXPENSE_AVERAGE_MONTHS,
+      1,
+    );
+    const dateTo = new Date(currentMonthStart.getTime() - DAY_MS);
+
+    const summary = (await this.transactionRecordService.getSummary(userId, {
+      date_from: formatIsoDate(dateFrom),
+      date_to: formatIsoDate(dateTo),
+      type: TransactionTypeEnum.EXPENSE,
+    })) as TransactionSummaryResponseDto;
+
+    const totalExpense = Number(summary.totals?.expenses ?? 0);
+    if (totalExpense <= 0) return null;
+
+    const averageMonthlyExpense =
+      totalExpense / EMERGENCY_FUND_EXPENSE_AVERAGE_MONTHS;
+    if (averageMonthlyExpense <= 0) return null;
+
+    return round2(currentBalance / averageMonthlyExpense);
   }
 
   async remove(id: number, userId: number) {

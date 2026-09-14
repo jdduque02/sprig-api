@@ -107,4 +107,16 @@ export class FinancialObjectiveResponseDto {
 
   @ApiPropertyOptional({ nullable: true })
   updated_at!: Date | null;
+
+  @ApiPropertyOptional({
+    description:
+      'Meses de gasto promedio que cubre el saldo actual: ' +
+      'current_balance / gasto mensual promedio del usuario (últimos 3 ' +
+      'meses calendario completos, fijo + variable). Solo se calcula para ' +
+      'objetivos de tipo `emergency_fund`; en cualquier otro tipo es ' +
+      'siempre null.',
+    example: 4.2,
+    nullable: true,
+  })
+  months_of_expenses_covered?: number | null;
 }
