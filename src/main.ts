@@ -100,7 +100,8 @@ async function bootstrap() {
   // expone datos sensibles — solo el estado up/down de cada dependencia.
 
   // --- Swagger (deshabilitado en producción) ---
-  const swaggerVersion = configService.get<string>('VERSION') ?? BRAND_META.version;
+  const swaggerVersion =
+    configService.get<string>('VERSION') ?? BRAND_META.version;
   if (!isProd) {
     const config = getSwaggerConfig(configService);
     const documentFactory = () => SwaggerModule.createDocument(app, config);
