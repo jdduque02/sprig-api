@@ -2,18 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
-import { Repository } from 'typeorm';
 import { CategoryBudgetRepository } from '@finance/repositories/category-budget.repository';
 import { CategoryBudget } from '@finance/entities/category-budget.entity';
 
-type CategoryBudgetRepoMock = jest.Mocked<
-  Pick<
-    Repository<CategoryBudget>,
-    'create' | 'save' | 'findOne' | 'merge' | 'softRemove'
-  >
-> & { find: jest.MockedFunction<() => Promise<CategoryBudget[]>> };
-
-const mockRepo: CategoryBudgetRepoMock = {
+const mockRepo = {
   create: jest.fn(),
   save: jest.fn(),
   find: jest.fn(),

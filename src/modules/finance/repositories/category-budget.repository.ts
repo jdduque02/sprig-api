@@ -35,7 +35,7 @@ export class CategoryBudgetRepository {
       where: {
         user_id: userId,
         category_id: dto.category_id,
-        subcategory_id: subcategoryId,
+        subcategory_id: subcategoryId === null ? IsNull() : subcategoryId,
         year: dto.year,
         month: dto.month,
         deleted_at: IsNull(),
