@@ -8,6 +8,7 @@ import {
 import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import { I18nService } from 'nestjs-i18n';
 import {
+  Brackets,
   DataSource,
   DeepPartial,
   EntityManager,
@@ -1318,6 +1319,96 @@ export class TransactionRecordRepository {
       where: { user_id: userId, deleted_at: IsNull() },
       select: ['id', 'name'],
     });
+  }
+
+  /**
+   * Total de gastos de una categoría (opcional subcategoría) en el rango de
+   * fechas de negocio `[dateFrom, dateTo]`. Usado por presupuestos por
+   * categoría. `createdSince` acota por `created_at` (partition pruning) con
+   * un piso amplio para no excluir movimientos importados con retraso.
+   */
+  async getExpenseTotalByCategory(
+    userId: number,
+    categoryId: number,
+    subcategoryId: number | null,
+    dateFrom: string,
+    dateTo: string,
+    createdSince: Date,
+  ): Promise<number> {
+    const qb = this.repo
+      .createQueryBuilder('tr')
+      .select('COALESCE(SUM(tr.amount), 0)', 'amount')
+      .where('tr.user_id = :userId', { userId })
+      .andWhere('tr.deleted_at IS NULL')
+      .andWhere('tr.type = :expense', {
+        expense: TransactionTypeEnum.EXPENSE,
+      })
+      .andWhere('tr.category_id = :categoryId', { categoryId })
+      .andWhere('tr.transaction_date >= :dateFrom', { dateFrom })
+      .andWhere('tr.transaction_date <= :dateTo', { dateTo })
+      .andWhere('tr.created_at >= :createdSince', { createdSince });
+    if (subcategoryId != null) {
+      qb.andWhere('tr.subcategory_id = :subcategoryId', { subcategoryId });
+    }
+    const row = await qb.getRawOne<{ amount: string }>();
+    return Number(row?.amount ?? 0);
+  }
+
+  /**
+   * Totales de débitos (GMF/4x1000) agrupados por cuenta en el rango de
+   * fechas de negocio `[dateFrom, dateTo]`. Débito = gastos e inversiones
+   * (por `account_id`) y la pata de origen de las transferencias (por
+   * `origin_account_id`); la pata de destino nunca debita. `createdSince`
+   * acota por `created_at` (partition pruning).
+   */
+  async getDebitTotalsByAccount(
+    userId: number,
+    dateFrom: string,
+    dateTo: string,
+    createdSince: Date,
+  ): Promise<{ account_id: string; amount: string }[]> {
+    const debitAccountSelect =
+      'CASE WHEN tr.type = :transferType THEN tr.origin_account_id ELSE tr.account_id END';
+    return (
+      this.repo
+        .createQueryBuilder('tr')
+        .select(debitAccountSelect, 'account_id')
+        .addSelect('COALESCE(SUM(tr.amount), 0)', 'amount')
+        .where('tr.user_id = :userId', { userId })
+        .andWhere('tr.deleted_at IS NULL')
+        .andWhere('tr.transaction_date >= :dateFrom', { dateFrom })
+        .andWhere('tr.transaction_date <= :dateTo', { dateTo })
+        .andWhere('tr.created_at >= :createdSince', { createdSince })
+        // CRÍTICO: el OR debe quedar aislado dentro de su propio grupo con
+        // `Brackets` — sin esto, TypeORM concatena la condición como texto
+        // plano tras el último AND y la precedencia normal de SQL (AND liga
+        // más fuerte que OR) hace que la rama de `transferType` quede SIN los
+        // filtros anteriores (user_id/fechas/deleted_at), devolviendo
+        // transferencias de CUALQUIER usuario. Bug real detectado por e2e
+        // contra Postgres, no solo un problema de precisión de montos.
+        .andWhere(
+          new Brackets((qb) => {
+            qb.where(
+              'tr.type IN (:...debitTypes) AND tr.account_id IS NOT NULL',
+            ).orWhere(
+              'tr.type = :transferType AND tr.origin_account_id IS NOT NULL',
+            );
+          }),
+        )
+        .setParameters({
+          userId,
+          dateFrom,
+          dateTo,
+          createdSince,
+          debitTypes: [
+            TransactionTypeEnum.EXPENSE,
+            TransactionTypeEnum.INVESTMENT,
+          ],
+          transferType: TransactionTypeEnum.TRANSFER,
+        })
+        .groupBy(debitAccountSelect)
+        .getRawMany<{ account_id: string; amount: string }>()
+    );
   }
 
   /**

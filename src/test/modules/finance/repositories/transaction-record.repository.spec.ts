@@ -11,6 +11,7 @@ import { Empresa } from '@finance/entities/empresa.entity';
 import { CreateTransactionRecordDto } from '@finance/dto/transaction-record/create-transaction-record.dto';
 import { UpdateTransactionRecordDto } from '@finance/dto/transaction-record/update-transaction-record.dto';
 import { TransactionRecordQueryDto } from '@finance/dto/transaction-record/transaction-record-query.dto';
+import { TransactionSummaryQueryDto } from '@finance/dto/transaction-record/transaction-summary-query.dto';
 import { BankAccount } from '@banking/entities/bank-account.entity';
 import { FinancialAsset } from '@banking/entities/financial-asset.entity';
 import { FinancialLiability } from '@banking/entities/financial-liability.entity';
@@ -112,7 +113,7 @@ const buildRecord = (overrides = {}): TransactionRecord =>
     ...overrides,
   }) as unknown as TransactionRecord;
 
-const linkedRepos = new Map<string, TransactionRecordRepoMock>([
+const linkedRepos = new Map<string, typeof mockTypeOrmRepo>([
   [FinancialObjective.name, { ...mockTypeOrmRepo }],
   [BankAccount.name, { ...mockTypeOrmRepo }],
   [FinancialAsset.name, { ...mockTypeOrmRepo }],
@@ -301,7 +302,10 @@ describe('TransactionRecordRepository', () => {
         return target;
       });
 
-      await repo.update(1, 10, { type: 'investment', objective_id: 3 });
+      await repo.update(1, 10, {
+        type: 'investment' as unknown as UpdateTransactionRecordDto['type'],
+        objective_id: 3,
+      });
 
       const objectiveSave = mockTypeOrmRepo.save.mock.calls.find(
         (call) => call[0]?.current_balance !== undefined && call[0]?.id === 3,
@@ -352,8 +356,8 @@ describe('TransactionRecordRepository', () => {
         category_id: 1,
         subcategory_id: 2,
         type: 'EXPENSE' as unknown as TransactionRecordQueryDto['type'],
-        date_from: new Date('2024-01-01'),
-        date_to: new Date('2024-01-31'),
+        date_from: '2024-01-01',
+        date_to: '2024-01-31',
       };
       await repo.findAll(10, query);
 
@@ -490,7 +494,10 @@ describe('TransactionRecordRepository', () => {
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([]);
 
-      await repo.getSummary(10, { type: 'expense', group_by: 'week' });
+      await repo.getSummary(10, {
+        type: 'expense' as unknown as TransactionSummaryQueryDto['type'],
+        group_by: 'week',
+      });
 
       const typeCalls = (
         mockQb.andWhere.mock.calls as Array<
