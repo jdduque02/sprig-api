@@ -63,8 +63,8 @@ describe('FinancialProfileService', () => {
       const profile = buildProfile();
       mockRepo.create.mockResolvedValue(profile);
 
-      const result = await service.create(2, dto);
-      expect(mockRepo.create).toHaveBeenCalledWith(2, dto);
+      const result = await service.create('2', dto);
+      expect(mockRepo.create).toHaveBeenCalledWith('2', dto);
       expect(result.user_id).toBe(2);
     });
 
@@ -72,7 +72,7 @@ describe('FinancialProfileService', () => {
       mockRepo.create.mockRejectedValue(
         new ConflictException('El usuario 2 ya tiene un perfil financiero.'),
       );
-      await expect(service.create(2, dto)).rejects.toThrow(ConflictException);
+      await expect(service.create('2', dto)).rejects.toThrow(ConflictException);
     });
   });
 
@@ -84,8 +84,8 @@ describe('FinancialProfileService', () => {
       const profile = buildProfile();
       mockRepo.findByUserId.mockResolvedValue(profile);
 
-      const result = await service.findByUserId(2);
-      expect(mockRepo.findByUserId).toHaveBeenCalledWith(2);
+      const result = await service.findByUserId('2');
+      expect(mockRepo.findByUserId).toHaveBeenCalledWith('2');
       expect(result.profile_name).toBe('Plan de Ahorro');
     });
 
@@ -93,7 +93,9 @@ describe('FinancialProfileService', () => {
       mockRepo.findByUserId.mockRejectedValue(
         new NotFoundException('El usuario 99 no tiene perfil financiero.'),
       );
-      await expect(service.findByUserId(99)).rejects.toThrow(NotFoundException);
+      await expect(service.findByUserId('99')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -108,8 +110,8 @@ describe('FinancialProfileService', () => {
       const updated = buildProfile({ needs_ratio: 60 });
       mockRepo.update.mockResolvedValue(updated);
 
-      const result = await service.update(2, dto);
-      expect(mockRepo.update).toHaveBeenCalledWith(2, dto);
+      const result = await service.update('2', dto);
+      expect(mockRepo.update).toHaveBeenCalledWith('2', dto);
       expect(result.needs_ratio).toBe(60);
     });
 
@@ -118,7 +120,9 @@ describe('FinancialProfileService', () => {
       const dto: UpdateFinancialProfileDto = {
         needs_ratio: 60,
       };
-      await expect(service.update(99, dto)).rejects.toThrow(NotFoundException);
+      await expect(service.update('99', dto)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -128,13 +132,13 @@ describe('FinancialProfileService', () => {
   describe('remove', () => {
     it('debe eliminar el perfil financiero correctamente', async () => {
       mockRepo.remove.mockResolvedValue(undefined);
-      await expect(service.remove(2)).resolves.toBeUndefined();
-      expect(mockRepo.remove).toHaveBeenCalledWith(2);
+      await expect(service.remove('2')).resolves.toBeUndefined();
+      expect(mockRepo.remove).toHaveBeenCalledWith('2');
     });
 
     it('debe propagar NotFoundException si no existe el perfil', async () => {
       mockRepo.remove.mockRejectedValue(new NotFoundException());
-      await expect(service.remove(99)).rejects.toThrow(NotFoundException);
+      await expect(service.remove('99')).rejects.toThrow(NotFoundException);
     });
   });
 });

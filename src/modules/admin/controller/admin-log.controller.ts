@@ -4,7 +4,6 @@ import {
   HttpCode,
   HttpStatus,
   Query,
-  Sse,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -28,7 +27,6 @@ import {
   SystemLogEntryDto,
   SystemLogStatsDto,
 } from '@admin/dto/system-log-response.dto';
-import { Observable, interval, switchMap, map } from 'rxjs';
 
 @ApiTags('admin / logs')
 @UseGuards(AuthGuard, AdminGuard)

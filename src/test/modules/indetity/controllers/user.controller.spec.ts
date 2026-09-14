@@ -3,7 +3,6 @@ import { UserController } from '@identity/controller/user.controller';
 import { UserService } from '@identity/service/user.service';
 import { CreateUserDto } from '@identity/dto/user/create-user.dto';
 import { UpdateUserDto } from '@identity/dto/user/update-user.dto';
-import { IntrospectResponse } from '@auth/interfaces/IntrospectResponse.dto';
 
 const mockUserService = {
   createUser: jest.fn(),
@@ -12,8 +11,6 @@ const mockUserService = {
   updateUser: jest.fn(),
   assertOwnership: jest.fn().mockResolvedValue(undefined),
 };
-
-const currentUser = { sub: 'kc-uuid' } as unknown as IntrospectResponse;
 
 describe('UserController', () => {
   let controller: UserController;
@@ -65,7 +62,7 @@ describe('UserController', () => {
     const user = { id: 3, username: 'ana' };
     mockUserService.findUser.mockResolvedValue(user);
 
-    const result = await controller.getUser('3', currentUser);
+    const result = await controller.getUser('3');
     expect(mockUserService.findUser).toHaveBeenCalledWith('3');
     expect(result).toEqual(user);
   });
@@ -75,16 +72,14 @@ describe('UserController', () => {
     const updated = { id: 3, timezone: 'America/Bogota' };
     mockUserService.updateUser.mockResolvedValue(updated);
 
-    const result = await controller.updateUser('3', dto, currentUser);
+    const result = await controller.updateUser('3', dto);
     expect(mockUserService.updateUser).toHaveBeenCalledWith('3', dto);
     expect(result).toEqual(updated);
   });
 
   it('debe propagar NotFoundException del servicio', async () => {
     mockUserService.findUser.mockRejectedValue(new NotFoundException());
-    await expect(controller.getUser('999', currentUser)).rejects.toThrow(
-      NotFoundException,
-    );
+    await expect(controller.getUser('999')).rejects.toThrow(NotFoundException);
   });
 
   it('debe retornar estado público del módulo', () => {

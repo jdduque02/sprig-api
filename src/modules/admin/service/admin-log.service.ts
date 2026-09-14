@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {
@@ -26,6 +26,17 @@ interface NestLogEntry {
   message: string;
 }
 
+interface AuditLogEntry {
+  action?: string;
+  schema_name?: string;
+  table_name?: string;
+  record_id?: number | string;
+  old_data?: unknown;
+  new_data?: unknown;
+  changed_by?: string;
+  created_at?: string;
+}
+
 @Injectable()
 export class AdminLogService {
   private readonly logger = new Logger(AdminLogService.name);
@@ -35,7 +46,7 @@ export class AdminLogService {
     this.logsDir = path.join(process.cwd(), 'logs');
   }
 
-  async findAll(
+  findAll(
     query: SystemLogQueryDto,
   ): Promise<{ data: SystemLogEntryDto[]; total: number }> {
     const entries: SystemLogEntryDto[] = [];
@@ -64,10 +75,10 @@ export class AdminLogService {
     const start = (query.page! - 1) * query.limit!;
     const data = filtered.slice(start, start + query.limit!);
 
-    return { data, total };
+    return Promise.resolve({ data, total });
   }
 
-  async getStats(): Promise<SystemLogStatsDto> {
+  getStats(): Promise<SystemLogStatsDto> {
     const entries = this.readFallbackLogs();
     entries.push(...this.readNestLogs());
     entries.push(...this.readAuditLogs());
@@ -97,15 +108,17 @@ export class AdminLogService {
       stats.oldestEntry = sorted[sorted.length - 1]?.timestamp;
     }
 
-    return stats;
+    return Promise.resolve(stats);
   }
 
-  async streamLogs(): Promise<SystemLogEntryDto[]> {
+  streamLogs(): Promise<SystemLogEntryDto[]> {
     const entries = this.readFallbackLogs();
     entries.push(...this.readNestLogs());
-    return entries.sort(
-      (a, b) =>
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+    return Promise.resolve(
+      entries.sort(
+        (a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+      ),
     );
   }
 
@@ -120,7 +133,9 @@ export class AdminLogService {
 
       for (let i = 0; i < lines.length; i++) {
         try {
-          const parsed: FallbackLogEntry = JSON.parse(lines[i]);
+          const parsed: FallbackLogEntry = JSON.parse(
+            lines[i],
+          ) as FallbackLogEntry;
           entries.push({
             id: `app-${i}`,
             severity: parsed.severity ?? 'INFO',
@@ -160,7 +175,7 @@ export class AdminLogService {
 
       for (let i = 0; i < lines.length; i++) {
         try {
-          const parsed: NestLogEntry = JSON.parse(lines[i]);
+          const parsed: NestLogEntry = JSON.parse(lines[i]) as NestLogEntry;
           entries.push({
             id: `nest-${i}`,
             severity: parsed.level?.toUpperCase() ?? 'INFO',
@@ -193,7 +208,7 @@ export class AdminLogService {
 
       for (let i = 0; i < lines.length; i++) {
         try {
-          const parsed = JSON.parse(lines[i]);
+          const parsed = JSON.parse(lines[i]) as AuditLogEntry;
           entries.push({
             id: `audit-${i}`,
             severity: parsed.action === 'DELETE' ? 'WARN' : 'INFO',
@@ -231,7 +246,7 @@ export class AdminLogService {
     let result = entries;
 
     if (query.severity) {
-      result = result.filter((e) => e.severity === query.severity);
+      result = result.filter((e) => e.severity === String(query.severity));
     }
 
     if (query.context) {

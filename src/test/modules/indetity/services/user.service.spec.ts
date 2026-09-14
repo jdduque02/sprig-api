@@ -10,6 +10,7 @@ import { CreateUserDto } from '@identity/dto/user/create-user.dto';
 import { UpdateUserDto } from '@identity/dto/user/update-user.dto';
 import { UserQueryDto } from '@identity/dto/user/user-query.dto';
 import { AppUser } from '@identity/entities/app-user.entity';
+import { UserResponseDto } from '@identity/dto/user/user-response.dto';
 import { EncryptionService } from '@shared/services/encryption.service';
 import { PresenceService } from '@shared/services/presence.service';
 import { AuditLogService } from '@audit/service/audit-log.service';
@@ -52,7 +53,7 @@ const mockEncryptionService = {
 
 const mockI18nService = {
   translate: jest.fn((_key: string) => ''),
-  t: jest.fn((key: string) => key),
+  t: jest.fn((key: string): string | undefined => key),
 };
 
 const mockConfigService = {
@@ -202,7 +203,7 @@ describe('UserService', () => {
       mockCacheManager.get.mockResolvedValue(null);
       mockUserRepository.findById.mockResolvedValue(user);
 
-      const result = await service.findUser('1');
+      const result = (await service.findUser('1')) as UserResponseDto;
       expect(result.roles).toEqual([]);
       expect(result.last_login_at).toEqual(lastLogin);
     });
@@ -215,7 +216,7 @@ describe('UserService', () => {
       mockUserRepository.findById.mockResolvedValue(user);
       mockEncryptionService.decryptField.mockReturnValueOnce('3500000');
 
-      const result = await service.findUser('1');
+      const result = (await service.findUser('1')) as UserResponseDto;
       expect(mockEncryptionService.decryptField).toHaveBeenCalledWith(
         'enc-monto',
         'finance',
@@ -234,7 +235,7 @@ describe('UserService', () => {
       mockUserRepository.findById.mockResolvedValue(user);
       mockEncryptionService.decryptField.mockReturnValueOnce(null);
 
-      const result = await service.findUser('1');
+      const result = (await service.findUser('1')) as UserResponseDto;
       expect(
         (
           result.financial_profile as unknown as {

@@ -9,7 +9,6 @@ import type { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
 import { I18nService } from 'nestjs-i18n';
 import { plainToInstance } from 'class-transformer';
-import type { DeepPartial } from 'typeorm';
 import { UserRepository } from '@identity/repositories/app-user.repositories';
 import { KeycloakAdminService } from '@auth/service/keycloak-admin.service';
 import { CreateUserDto } from '@identity/dto/user/create-user.dto';
